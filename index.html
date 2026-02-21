@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Writer</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" id="theme-meta" content="#ede9e0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="apple-touch-icon" href="icon-192.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f2eb;
+      --bg2: #ede9e0;
+      --surface: #ffffff;
+      --border: #d8d3c8;
+      --text: #2c2825;
+      --text-muted: #9a9088;
+      --text-faint: #c4bdb5;
+      --accent: #1a6b4a;
+      --accent-light: #e8f4ef;
+      --danger: #c0392b;
+      --warn: #e67e22;
+      --font-body: 'Lora', Georgia, serif;
+      --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+      --editor-width: 680px;
+      --transition: 0.2s ease;
+
+      /* Window Controls Overlay (PWA installée sur Windows/Mac) */
+      --titlebar-h: env(titlebar-area-height, 0px);
+      --titlebar-x: env(titlebar-area-x, 0px);
+      --titlebar-w: env(titlebar-area-width, 100%);
+      --toolbar-h: 48px;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1a1917;
+      --bg2: #211f1c;
+      --surface: #252320;
+      --border: #38352f;
+      --text: #e8e4dc;
+      --text-muted: #7a756e;
+      --text-faint: #4a4640;
+      --accent: #4caf85;
+      --accent-light: #1a2e24;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      transition: background var(--transition), color var(--transition);
+    }
+
+    /* ── LAYOUT ── */
+    #app {
+      display: grid;
+      /* La titlebar WCO prend la place au-dessus de notre toolbar */
+      grid-template-rows: calc(var(--titlebar-h) + var(--toolbar-h)) 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── TITLEBAR ZONE (Window Controls Overlay) ── */
+    /* Quand l'app est installée comme PWA sur Windows, cette zone
+       est draggable et les boutons Windows (min/max/close) s'y affichent */
+    #titlebar {
+      position: fixed;
+      top: 0;
+      left: var(--titlebar-x);
+      width: var(--titlebar-w);
+      height: var(--titlebar-h);
+      background: var(--bg2);
+      -webkit-app-region: drag;
+      app-region: drag;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      z-index: 200;
+      /* Caché si pas de WCO (navigateur normal) */
+      opacity: var(--titlebar-h, 0);
+    }
+
+    #titlebar .app-name {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      -webkit-app-region: no-drag;
+      user-select: none;
+    }
+
+    /* ── TOOLBAR ── */
+    #toolbar {
+      position: fixed;
+      top: var(--titlebar-h);
+      left: 0;
+      right: 0;
+      height: var(--toolbar-h);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 12px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      transition: opacity var(--transition);
+      z-index: 100;
+    }
+
+    #toolbar .doc-title {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0 8px;
+      cursor: default;
+      user-select: none;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .toolbar-group + .toolbar-group {
+      border-left: 1px solid var(--border);
+      margin-left: 4px;
+      padding-left: 4px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: background var(--transition), color var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn:hover { background: var(--border); color: var(--text); }
+    .btn.active { background: var(--accent-light); color: var(--accent); }
+
+    .btn-text {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      width: auto;
+      padding: 0 9px;
+    }
+
+    /* Badge compteur d'erreurs */
+    #spell-badge {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      min-width: 16px;
+      height: 16px;
+      background: var(--danger);
+      color: white;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 700;
+      border-radius: 8px;
+      padding: 0 4px;
+      margin-left: 2px;
+    }
+    #spell-badge.visible { display: flex; }
+
+    /* ── MAIN ── */
+    #main {
+      margin-top: calc(var(--titlebar-h) + var(--toolbar-h));
+      display: grid;
+      grid-template-columns: 1fr;
+      overflow: hidden;
+      height: calc(100vh - var(--titlebar-h) - var(--toolbar-h));
+    }
+
+    #main.split { grid-template-columns: 1fr 1fr; }
+
+    /* ── EDITOR PANE ── */
+    #editor-pane {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+      border-right: 1px solid transparent;
+      transition: border-color var(--transition);
+      position: relative;
+    }
+
+    #main.split #editor-pane { border-right-color: var(--border); }
+
+    /* Le textarea est transparent — le texte réel est rendu dans #render-layer */
+    #editor {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      padding: 48px max(32px, calc((100% - var(--editor-width)) / 2));
+      font-family: var(--font-mono);
+      font-size: 16px;
+      line-height: 1.85;
+      color: transparent;
+      caret-color: var(--text);
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      overflow-y: auto;
+      transition: padding var(--transition);
+    }
+
+    #editor::placeholder { color: var(--text-faint); }
+
+    /* ── RENDER LAYER — texte + soulignés ── */
+    #render-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      overflow: hidden;
+      padding: 48px max(32px, calc((100% - var(--editor-width)) / 2));
+      font-family: var(--font-mono);
+      font-size: 16px;
+      line-height: 1.85;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* Faute ortho/grammaire → rouge ondulé */
+    .sp-err {
+      text-decoration: underline wavy var(--danger);
+      text-decoration-skip-ink: none;
+      cursor: pointer;
+      pointer-events: auto;
+      border-radius: 1px;
+    }
+    .sp-err:hover { background: rgba(192,57,43,.06); }
+
+    /* Style/ponctuation → orange ondulé */
+    .sp-warn {
+      text-decoration: underline wavy var(--warn);
+      text-decoration-skip-ink: none;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+    .sp-warn:hover { background: rgba(230,126,34,.06); }
+
+    /* ── POPUP SUGGESTION ── */
+    #popup {
+      position: fixed;
+      z-index: 500;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 6px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.08);
+      min-width: 180px;
+      max-width: 280px;
+      display: none;
+      animation: popIn .12s ease;
+    }
+    #popup.open { display: block; }
+
+    @keyframes popIn {
+      from { transform: scale(.94) translateY(-4px); opacity: 0; }
+      to   { transform: scale(1)   translateY(0);    opacity: 1; }
+    }
+
+    .pop-header {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      padding: 4px 8px 6px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 4px;
+      letter-spacing: .4px;
+    }
+
+    .pop-rule {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      padding: 2px 8px 6px;
+      line-height: 1.4;
+    }
+
+    .pop-sug {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      transition: background var(--transition);
+    }
+    .pop-sug:hover { background: var(--accent-light); }
+    .pop-sug .arr { opacity: .5; font-size: 11px; }
+
+    .pop-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+    .pop-action {
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      transition: background var(--transition);
+    }
+    .pop-action:hover { background: var(--bg2); }
+
+    /* loader dans le popup */
+    .pop-loading {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .spin {
+      width: 12px; height: 12px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── FOCUS MODE ── */
+    body.focus-mode #toolbar { opacity: 0; pointer-events: none; }
+    body.focus-mode #toolbar:hover { opacity: 1; pointer-events: all; }
+    body.focus-mode #editor { padding-top: 30vh; }
+    body.focus-mode #render-layer { padding-top: 30vh; }
+    body.focus-mode #statusbar { opacity: 0.2; }
+
+    /* ── PREVIEW PANE ── */
+    #preview-pane { overflow-y: auto; background: var(--surface); display: none; }
+    #main.split #preview-pane { display: block; }
+
+    #preview-content {
+      padding: 48px 48px;
+      max-width: 640px;
+      margin: 0 auto;
+      font-family: var(--font-body);
+      font-size: 17px;
+      line-height: 1.8;
+      color: var(--text);
+    }
+    #preview-content h1,#preview-content h2,#preview-content h3 { font-weight:500; margin:1.5em 0 .5em; line-height:1.3; }
+    #preview-content h1 { font-size:2em; }
+    #preview-content h2 { font-size:1.4em; }
+    #preview-content h3 { font-size:1.15em; }
+    #preview-content p { margin:0 0 1em; }
+    #preview-content strong { font-weight:600; }
+    #preview-content em { font-style:italic; }
+    #preview-content code { font-family:var(--font-mono);font-size:.85em;background:var(--bg2);padding:2px 6px;border-radius:3px; }
+    #preview-content pre { background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:16px;overflow-x:auto;margin:1em 0; }
+    #preview-content pre code { background:none;padding:0; }
+    #preview-content blockquote { border-left:3px solid var(--accent);margin:1em 0;padding:4px 16px;color:var(--text-muted); }
+    #preview-content ul,#preview-content ol { margin:0 0 1em 1.5em; }
+    #preview-content li { margin-bottom:4px; }
+    #preview-content a { color:var(--accent);text-decoration:underline; }
+    #preview-content hr { border:none;border-top:1px solid var(--border);margin:2em 0; }
+
+    /* ── STATUS BAR ── */
+    #statusbar {
+      position: fixed;
+      bottom: 12px;
+      right: 16px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-faint);
+      letter-spacing: 0.5px;
+      pointer-events: none;
+      transition: opacity var(--transition);
+      z-index: 10;
+    }
+
+    /* ── FILE DRAWER ── */
+    #file-drawer {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 200;
+      display: none;
+      backdrop-filter: blur(4px);
+    }
+    #file-drawer.open { display: flex; }
+
+    #file-panel {
+      width: 300px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      animation: slideIn .2s ease;
+    }
+    @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+
+    #file-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    #file-panel-header h3 {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    #file-list { flex: 1; overflow-y: auto; padding: 8px; }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .file-item:hover { background: var(--bg2); }
+    .file-item.active { background: var(--accent-light); }
+    .file-item-info { flex: 1; min-width: 0; }
+    .file-item-name { font-family: var(--font-mono);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text); }
+    .file-item.active .file-item-name { color: var(--accent); }
+    .file-item-meta { font-size: 10px;color:var(--text-faint);font-family:var(--font-mono);margin-top:2px; }
+    .file-delete { opacity:0;border:none;background:none;color:var(--danger);cursor:pointer;font-size:14px;padding:2px 4px;border-radius:4px; }
+    .file-item:hover .file-delete { opacity: 1; }
+
+    #file-panel-footer { padding: 12px; border-top: 1px solid var(--border); }
+    .btn-new-file {
+      width: 100%;
+      padding: 10px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+    }
+    .btn-new-file:hover { opacity: .85; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: var(--text);
+      color: var(--bg);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 7px 14px;
+      border-radius: 20px;
+      opacity: 0;
+      transition: opacity .2s, transform .2s;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 400;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+    /* ── MOBILE ── */
+    @media (max-width: 600px) {
+      #main.split { grid-template-columns: 1fr; }
+      #main.split #preview-pane { display: none; }
+      #editor,#render-layer { padding: 32px 20px; }
+      #file-panel { width: 85vw; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Titlebar zone pour PWA Windows (Window Controls Overlay) -->
+<div id="titlebar"><span class="app-name">Writer</span></div>
+
+<div id="app">
+  <!-- TOOLBAR -->
+  <div id="toolbar">
+    <div class="toolbar-group">
+      <button class="btn" id="btn-files" title="Fichiers (⌘O)">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+    </div>
+
+    <span class="doc-title" id="doc-title">sans titre.md</span>
+
+    <div class="toolbar-group">
+      <!-- Correction LanguageTool -->
+      <button class="btn btn-text" id="btn-spell" title="Correction orthographique (⌘L)">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="margin-right:3px">
+          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+        ABC
+      </button>
+      <span id="spell-badge">0</span>
+    </div>
+
+    <div class="toolbar-group">
+      <button class="btn btn-text" id="btn-preview" title="Prévisualisation Markdown (⌘P)">MD</button>
+      <button class="btn" id="btn-focus" title="Mode focus (⌘⇧F)">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+        </svg>
+      </button>
+      <button class="btn" id="btn-theme" title="Thème clair/sombre">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="5"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="toolbar-group">
+      <button class="btn" id="btn-save" title="Sauvegarder (⌘S)">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+      </button>
+      <button class="btn" id="btn-export" title="Exporter .md">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="editor-pane">
+      <!-- Render layer : texte affiché avec soulignés -->
+      <div id="render-layer"></div>
+      <!-- Textarea transparent par-dessus -->
+      <textarea id="editor" placeholder="Commencez à écrire…" spellcheck="false" autocorrect="off"></textarea>
+    </div>
+    <div id="preview-pane">
+      <div id="preview-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div id="statusbar"><span id="word-count">0 mots</span></div>
+
+<!-- POPUP SUGGESTION LanguageTool -->
+<div id="popup">
+  <div class="pop-header" id="pop-word"></div>
+  <div class="pop-rule" id="pop-rule"></div>
+  <div id="pop-sugs"></div>
+  <div class="pop-divider"></div>
+  <div class="pop-action" id="pop-ignore">Ignorer</div>
+  <div class="pop-action" id="pop-ignore-all">Ignorer toujours ce mot</div>
+</div>
+
+<!-- FILE DRAWER -->
+<div id="file-drawer">
+  <div id="file-panel">
+    <div id="file-panel-header">
+      <h3>Documents</h3>
+      <button class="btn" id="btn-close-drawer">✕</button>
+    </div>
+    <div id="file-list"></div>
+    <div id="file-panel-footer">
+      <button class="btn-new-file" id="btn-new-file">+ Nouveau document</button>
+    </div>
+  </div>
+  <div style="flex:1" id="drawer-overlay"></div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+const DB_KEY = 'writer_files_v1';
+let state = {
+  files: [],
+  currentId: null,
+  focusMode: false,
+  previewMode: false,
+  spellOn: false,
+  // Erreurs détectées par LanguageTool
+  errors: [],       // [{offset, length, message, shortMessage, replacements, ruleId}]
+  ignored: new Set(), // ruleIds ignorés
+  ignoredWords: new Set(), // mots ignorés
+};
+
+try { state.files = JSON.parse(localStorage.getItem(DB_KEY) || '[]'); } catch(e) {}
+try { state.ignoredWords = new Set(JSON.parse(localStorage.getItem(DB_KEY+'_iw') || '[]')); } catch(e) {}
+
+// ══════════════════════════════════════════════
+// ELEMENTS
+// ══════════════════════════════════════════════
+const editor = document.getElementById('editor');
+const renderLayer = document.getElementById('render-layer');
+const popup = document.getElementById('popup');
+const fileDrawer = document.getElementById('file-drawer');
+const fileList = document.getElementById('file-list');
+const spellBadge = document.getElementById('spell-badge');
+const toast = document.getElementById('toast');
+
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+let toastTimer;
+function showToast(msg, d = 2200) {
+  clearTimeout(toastTimer);
+  toast.textContent = msg;
+  toast.classList.add('show');
+  toastTimer = setTimeout(() => toast.classList.remove('show'), d);
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function countWords(t) { return t.trim() ? t.trim().split(/\s+/).length : 0; }
+function fmtDate(ts) { return new Date(ts).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ══════════════════════════════════════════════
+// FILES
+// ══════════════════════════════════════════════
+function saveDB() { localStorage.setItem(DB_KEY, JSON.stringify(state.files)); }
+
+function createFile(name = 'Sans titre') {
+  const f = { id: uid(), name, content: '', createdAt: Date.now(), updatedAt: Date.now() };
+  state.files.unshift(f); saveDB(); return f;
+}
+function getCurrent() { return state.files.find(f => f.id === state.currentId); }
+
+function openFile(id) {
+  const f = state.files.find(f => f.id === id);
+  if (!f) return;
+  state.currentId = id;
+  editor.value = f.content;
+  document.getElementById('doc-title').textContent = f.name + '.md';
+  updateWordCount();
+  buildRenderLayer();
+  if (state.previewMode) updatePreview();
+  if (state.spellOn) scheduleSpellCheck();
+  renderFileList();
+  closeDrawer();
+  editor.focus();
+}
+
+function saveCurrentFile(quiet = false) {
+  const f = getCurrent(); if (!f) return;
+  f.content = editor.value; f.updatedAt = Date.now();
+  const firstLine = editor.value.split('\n')[0].replace(/^#+\s*/, '').trim();
+  if (firstLine) f.name = firstLine.slice(0, 50);
+  document.getElementById('doc-title').textContent = f.name + '.md';
+  saveDB(); renderFileList();
+  if (!quiet) showToast('Sauvegardé ✓');
+}
+
+function deleteFile(id) {
+  if (!confirm('Supprimer ce document ?')) return;
+  state.files = state.files.filter(f => f.id !== id); saveDB();
+  if (state.currentId === id) {
+    state.currentId = null; editor.value = '';
+    document.getElementById('doc-title').textContent = 'sans titre.md';
+    buildRenderLayer();
+    if (state.files.length) openFile(state.files[0].id);
+  }
+  renderFileList();
+}
+
+function renderFileList() {
+  if (!state.files.length) {
+    fileList.innerHTML = '<div style="padding:20px;text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--text-faint)">Aucun document</div>';
+    return;
+  }
+  fileList.innerHTML = '';
+  state.files.forEach(f => {
+    const d = document.createElement('div');
+    d.className = 'file-item' + (f.id === state.currentId ? ' active' : '');
+    d.innerHTML = `
+      <div class="file-item-info">
+        <div class="file-item-name">${esc(f.name)}</div>
+        <div class="file-item-meta">${fmtDate(f.updatedAt)} · ${countWords(f.content)} mots</div>
+      </div>
+      <button class="file-delete" title="Supprimer">✕</button>`;
+    d.addEventListener('click', e => {
+      if (e.target.classList.contains('file-delete')) { deleteFile(f.id); return; }
+      openFile(f.id);
+    });
+    fileList.appendChild(d);
+  });
+}
+
+// ══════════════════════════════════════════════
+// MARKDOWN PREVIEW
+// ══════════════════════════════════════════════
+function updatePreview() {
+  const pc = document.getElementById('preview-content');
+  let h = editor.value
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/^---+$/gm,'<hr>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^\> (.+)$/gm,'<blockquote>$1</blockquote>')
+    .replace(/^\- (.+)$/gm,'<li>$1</li>').replace(/^\d+\. (.+)$/gm,'<li>$1</li>')
+    .replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2" target="_blank">$1</a>');
+  h = h.replace(/(<li>[^]*?<\/li>\n?)+/g, m => `<ul>${m}</ul>`);
+  h = h.split('\n\n').map(b => {
+    const t = b.trim(); if (!t) return '';
+    if (/^<(h[1-3]|ul|ol|blockquote|hr|pre)/.test(t)) return t;
+    return `<p>${t.replace(/\n/g,'<br>')}</p>`;
+  }).join('\n');
+  pc.innerHTML = h;
+}
+
+function updateWordCount() {
+  const w = countWords(editor.value);
+  document.getElementById('word-count').textContent = `${w} mot${w !== 1 ? 's' : ''}`;
+}
+
+// ══════════════════════════════════════════════
+// RENDER LAYER — texte + soulignés cliquables
+// ══════════════════════════════════════════════
+function buildRenderLayer() {
+  const text = editor.value;
+  if (!text || !state.spellOn || !state.errors.length) {
+    renderLayer.innerHTML = esc(text);
+    return;
+  }
+
+  // Filtrer les erreurs ignorées
+  const active = state.errors.filter(e => {
+    if (state.ignored.has(e.ruleId)) return false;
+    const word = text.slice(e.offset, e.offset + e.length).toLowerCase();
+    if (state.ignoredWords.has(word)) return false;
+    return true;
+  });
+
+  // Construire le HTML avec les spans cliquables
+  let html = '', pos = 0;
+  active.forEach((err, i) => {
+    if (err.offset < pos) return;
+    // texte avant l'erreur
+    html += esc(text.slice(pos, err.offset));
+    const cls = err.ruleId?.startsWith('STYLE') ? 'sp-warn' : 'sp-err';
+    html += `<span class="${cls}" data-err="${i}">${esc(text.slice(err.offset, err.offset + err.length))}</span>`;
+    pos = err.offset + err.length;
+  });
+  html += esc(text.slice(pos));
+
+  renderLayer.innerHTML = html;
+  renderLayer.scrollTop = editor.scrollTop;
+
+  // Mettre à jour le badge
+  if (active.length > 0) {
+    spellBadge.textContent = active.length;
+    spellBadge.classList.add('visible');
+  } else {
+    spellBadge.classList.remove('visible');
+  }
+}
+
+// Sync scroll textarea → render layer
+editor.addEventListener('scroll', () => {
+  renderLayer.scrollTop = editor.scrollTop;
+});
+
+// ══════════════════════════════════════════════
+// LANGUAGETOOL — Correcteur pro gratuit
+// API publique, aucune clé requise
+// Détecte : orthographe, grammaire, conjugaison,
+//           ponctuation, style, accords, etc.
+// ══════════════════════════════════════════════
+const LT_URL = 'https://api.languagetool.org/v2/check';
+
+let spellTimer;
+function scheduleSpellCheck(delay = 800) {
+  clearTimeout(spellTimer);
+  if (!state.spellOn) return;
+  spellTimer = setTimeout(runSpellCheck, delay);
+}
+
+async function runSpellCheck() {
+  const text = editor.value.trim();
+  if (!text) {
+    state.errors = [];
+    buildRenderLayer();
+    spellBadge.classList.remove('visible');
+    return;
+  }
+
+  // Indicateur discret pendant la vérification
+  spellBadge.textContent = '…';
+  spellBadge.classList.add('visible');
+
+  try {
+    const params = new URLSearchParams({
+      text: editor.value,
+      language: 'fr',
+      enabledOnly: 'false',
+    });
+
+    const res = await fetch(LT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params,
+    });
+
+    if (!res.ok) throw new Error('LanguageTool error ' + res.status);
+    const data = await res.json();
+
+    state.errors = data.matches.map(m => ({
+      offset: m.offset,
+      length: m.length,
+      message: m.message,
+      shortMessage: m.shortMessage || m.message,
+      replacements: m.replacements.slice(0, 5).map(r => r.value),
+      ruleId: m.rule?.id || '',
+      ruleDesc: m.rule?.description || '',
+    }));
+
+    buildRenderLayer();
+
+  } catch (err) {
+    // Silencieux en cas d'erreur réseau
+    spellBadge.classList.remove('visible');
+    console.warn('LanguageTool:', err.message);
+  }
+}
+
+// ══════════════════════════════════════════════
+// POPUP — clic sur un mot souligné
+// ══════════════════════════════════════════════
+let activeErr = null;
+
+renderLayer.addEventListener('click', e => {
+  const span = e.target.closest('[data-err]');
+  if (!span) { closePopup(); return; }
+
+  const idx = parseInt(span.dataset.err);
+
+  // Filtrer les erreurs actives (même logique que buildRenderLayer)
+  const text = editor.value;
+  const active = state.errors.filter(err => {
+    if (state.ignored.has(err.ruleId)) return false;
+    const word = text.slice(err.offset, err.offset + err.length).toLowerCase();
+    if (state.ignoredWords.has(word)) return false;
+    return true;
+  });
+
+  activeErr = active[idx];
+  if (!activeErr) return;
+
+  showPopup(activeErr, span);
+  e.stopPropagation();
+});
+
+function showPopup(err, spanEl) {
+  const text = editor.value;
+  const word = text.slice(err.offset, err.offset + err.length);
+
+  document.getElementById('pop-word').textContent = `"${word}"`;
+  document.getElementById('pop-rule').textContent = err.shortMessage || err.message;
+
+  const sugsEl = document.getElementById('pop-sugs');
+  sugsEl.innerHTML = '';
+
+  if (err.replacements.length) {
+    err.replacements.forEach(sug => {
+      const d = document.createElement('div');
+      d.className = 'pop-sug';
+      d.innerHTML = `<span class="arr">→</span><span>${esc(sug)}</span>`;
+      d.addEventListener('click', () => {
+        applyCorrection(err, sug);
+        closePopup();
+      });
+      sugsEl.appendChild(d);
+    });
+  } else {
+    sugsEl.innerHTML = '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-faint);padding:6px 10px">Aucune suggestion</div>';
+  }
+
+  // Position
+  popup.classList.add('open');
+  const rect = spanEl.getBoundingClientRect();
+  const pw = popup.offsetWidth || 200;
+  const ph = popup.offsetHeight || 150;
+  let left = rect.left;
+  let top = rect.bottom + 6;
+  if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+  if (top + ph > window.innerHeight - 8) top = rect.top - ph - 6;
+  popup.style.left = left + 'px';
+  popup.style.top = top + 'px';
+}
+
+function closePopup() { popup.classList.remove('open'); activeErr = null; }
+
+function applyCorrection(err, sug) {
+  const text = editor.value;
+  editor.value = text.slice(0, err.offset) + sug + text.slice(err.offset + err.length);
+  // Décaler les erreurs suivantes
+  const diff = sug.length - err.length;
+  state.errors = state.errors.filter(e => e !== err).map(e => {
+    if (e.offset > err.offset) e.offset += diff;
+    return e;
+  });
+  buildRenderLayer();
+  updateWordCount();
+  if (getCurrent()) saveCurrentFile(true);
+}
+
+document.getElementById('pop-ignore').addEventListener('click', () => {
+  if (!activeErr) return;
+  state.ignored.add(activeErr.ruleId);
+  closePopup(); buildRenderLayer();
+});
+
+document.getElementById('pop-ignore-all').addEventListener('click', () => {
+  if (!activeErr) return;
+  const word = editor.value.slice(activeErr.offset, activeErr.offset + activeErr.length).toLowerCase();
+  state.ignoredWords.add(word);
+  localStorage.setItem(DB_KEY + '_iw', JSON.stringify([...state.ignoredWords]));
+  closePopup(); buildRenderLayer();
+});
+
+// Fermer popup en cliquant ailleurs
+document.addEventListener('click', e => {
+  if (!popup.contains(e.target) && !renderLayer.contains(e.target)) closePopup();
+});
+
+// ══════════════════════════════════════════════
+// TOOLBAR ACTIONS
+// ══════════════════════════════════════════════
+function openDrawer() { renderFileList(); fileDrawer.classList.add('open'); }
+function closeDrawer() { fileDrawer.classList.remove('open'); }
+
+document.getElementById('btn-files').addEventListener('click', openDrawer);
+document.getElementById('btn-close-drawer').addEventListener('click', closeDrawer);
+document.getElementById('drawer-overlay').addEventListener('click', closeDrawer);
+document.getElementById('btn-new-file').addEventListener('click', () => {
+  const f = createFile(); openFile(f.id); showToast('Nouveau document');
+});
+
+document.getElementById('btn-preview').addEventListener('click', () => {
+  state.previewMode = !state.previewMode;
+  document.getElementById('main').classList.toggle('split', state.previewMode);
+  document.getElementById('btn-preview').classList.toggle('active', state.previewMode);
+  if (state.previewMode) updatePreview();
+});
+
+document.getElementById('btn-focus').addEventListener('click', () => {
+  state.focusMode = !state.focusMode;
+  document.body.classList.toggle('focus-mode', state.focusMode);
+  document.getElementById('btn-focus').classList.toggle('active', state.focusMode);
+  if (state.focusMode) editor.focus();
+});
+
+document.getElementById('btn-theme').addEventListener('click', () => {
+  const dark = document.documentElement.dataset.theme === 'dark';
+  const next = dark ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  document.getElementById('theme-meta').content = next === 'dark' ? '#211f1c' : '#ede9e0';
+  localStorage.setItem('writer_theme', next);
+});
+
+document.getElementById('btn-save').addEventListener('click', () => {
+  if (!getCurrent()) { const f = createFile(); state.currentId = f.id; }
+  saveCurrentFile();
+});
+
+document.getElementById('btn-export').addEventListener('click', () => {
+  const name = (getCurrent()?.name || 'document') + '.md';
+  const blob = new Blob([editor.value], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  showToast('Exporté ✓');
+});
+
+// Bouton correction
+document.getElementById('btn-spell').addEventListener('click', () => {
+  state.spellOn = !state.spellOn;
+  document.getElementById('btn-spell').classList.toggle('active', state.spellOn);
+  if (state.spellOn) {
+    scheduleSpellCheck(100);
+    showToast('Correction activée — LanguageTool');
+  } else {
+    state.errors = [];
+    buildRenderLayer();
+    spellBadge.classList.remove('visible');
+    showToast('Correction désactivée');
+  }
+});
+
+// ══════════════════════════════════════════════
+// EDITOR EVENTS
+// ══════════════════════════════════════════════
+let autoSaveTimer;
+editor.addEventListener('input', () => {
+  updateWordCount();
+  buildRenderLayer(); // sync immédiat du texte visible
+  if (state.previewMode) updatePreview();
+  scheduleSpellCheck(1200); // re-check après 1.2s d'inactivité
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => { if (getCurrent()) saveCurrentFile(true); }, 1800);
+});
+
+editor.addEventListener('keydown', e => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const s = editor.selectionStart;
+    editor.value = editor.value.slice(0, s) + '  ' + editor.value.slice(editor.selectionEnd);
+    editor.selectionStart = editor.selectionEnd = s + 2;
+    buildRenderLayer();
+  }
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+    e.preventDefault();
+    if (!getCurrent()) { const f = createFile(); state.currentId = f.id; }
+    saveCurrentFile();
+  }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
+    e.preventDefault();
+    document.getElementById('btn-spell').click();
+  }
+  if (e.key === 'Escape') {
+    if (popup.classList.contains('open')) { closePopup(); return; }
+    if (state.focusMode) {
+      state.focusMode = false;
+      document.body.classList.remove('focus-mode');
+      document.getElementById('btn-focus').classList.remove('active');
+    }
+  }
+});
+
+// ══════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ══════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'o') { e.preventDefault(); openDrawer(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'p') { e.preventDefault(); document.getElementById('btn-preview').click(); }
+  if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'f') { e.preventDefault(); document.getElementById('btn-focus').click(); }
+});
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+function init() {
+  const theme = localStorage.getItem('writer_theme') || 'light';
+  document.documentElement.dataset.theme = theme;
+  document.getElementById('theme-meta').content = theme === 'dark' ? '#211f1c' : '#ede9e0';
+
+  if (state.files.length) {
+    openFile(state.files[0].id);
+  } else {
+    const f = createFile('Bienvenue');
+    f.content = `# Bienvenue dans Writer\n\nUn éditeur minimaliste inspiré de iA Writer.\n\n## Correction orthographique\n\nClique sur **ABC** dans la barre pour activer la correction.\nLes fautes sont soulignées en rouge, **clique dessus** pour voir les suggestions.\n\nPowered by **LanguageTool** — détecte l'orthographe, la grammaire, la conjugaison, les accords et plus.\n\n## Raccourcis\n\n| Action | Raccourci |\n|---|---|\n| Sauvegarder | ⌘S |\n| Fichiers | ⌘O |\n| Prévisualisation | ⌘P |\n| Correction | ⌘L |\n| Mode focus | ⌘⇧F |\n\nBonne écriture ✦`;
+    saveDB(); openFile(f.id);
+  }
+
+  updateWordCount();
+}
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+init();
+</script>
+</body>
+</html>
