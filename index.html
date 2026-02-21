@@ -440,6 +440,13 @@
       <span>Assistant IA</span>
       <button class="btn close-ai" id="btn-close-ai">✕</button>
     </div>
+    <!-- Correcteur local GRATUIT — sans API -->
+    <div id="local-spell-bar" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 10px;background:var(--accent-light);border-radius:8px;border:1px solid var(--accent)">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--accent)"><path d="M12 2L13.8 8.2L20 10L13.8 11.8L12 18L10.2 11.8L4 10L10.2 8.2Z"/></svg>
+      <span style="font-family:var(--font-mono);font-size:10px;color:var(--accent);font-weight:500;flex:1">Correcteur local — gratuit, sans API</span>
+      <button class="btn-accept" id="btn-local-spell" style="font-size:10px;padding:4px 10px">Corriger les fautes →</button>
+    </div>
+    <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-faint);margin-bottom:8px;padding:0 2px">— Ou avec l'IA Claude (API requise) :</div>
     <div id="ai-modes">
       <button class="ai-mode-btn selected" data-mode="correct">✓ Corriger</button>
       <button class="ai-mode-btn" data-mode="rephrase">↺ Reformuler</button>
@@ -790,6 +797,223 @@ document.querySelectorAll('.kb-btn[data-insert]').forEach(btn=>{
 });
 
 document.getElementById('mobile-ai-btn').addEventListener('click',openAI);
+
+// ═══ CORRECTEUR LOCAL FRANÇAIS ═══════════════
+// Dictionnaire de corrections de fautes courantes en français
+const FR_CORRECTIONS = [
+  // Doubles espaces
+  [/  +/g, ' '],
+  // Espace avant ponctuation (sauf ! ? ; : qui nécessitent espace en typographie française)
+  [/\s+([,.])/g, '$1'],
+  [/([,.](?!\d))([a-zA-ZÀ-ÿ])/g, '$1 $2'],
+  // Apostrophes typographiques
+  [/\b(c|d|j|l|m|n|qu|s|t|jusqu|lorsqu|puisqu|quoiqu|quelqu)[''`´]([\w])/gi,
+    (m,a,b) => a.toLowerCase()+"'"+b],
+  // Mots souvent mal orthographiés
+  [/\bparmis\b/gi, 'parmi'],
+  [/\bmalgres\b/gi, 'malgré'],
+  [/\bbiensûr\b/gi, 'bien sûr'],
+  [/\bbien-sûr\b/gi, 'bien sûr'],
+  [/\bau jour d['']aujourd['']hui\b/gi, "aujourd'hui"],
+  [/\bvis[- ]à[- ]vis\b/gi, 'vis-à-vis'],
+  [/\bc['']est à dire\b/gi, "c'est-à-dire"],
+  [/\bpeu à peu\b/gi, 'peu à peu'],
+  [/\ben dessous\b/gi, 'en dessous'],
+  [/\bau dessus\b/gi, 'au-dessus'],
+  [/\bau dessous\b/gi, 'au-dessous'],
+  [/\bpar dessus\b/gi, 'par-dessus'],
+  [/\bquelque soit\b/gi, 'quelle que soit'],
+  [/\bquelles? que soient?\b/gi, m => m],
+  [/\bquant a\b/gi, 'quant à'],
+  // Accents manquants fréquents
+  [/\bdeja\b/g, 'déjà'],
+  [/\bgrace a\b/gi, 'grâce à'],
+  [/\ba cause de\b/gi, 'à cause de'],
+  [/\ba travers\b/gi, 'à travers'],
+  [/\ba partir de\b/gi, 'à partir de'],
+  [/\ba cote\b/gi, 'à côté'],
+  // Fautes de frappe courantes
+  [/\bqu'il y a\b/gi, "qu'il y a"],
+  [/\bc'etait\b/gi, "c'était"],
+  [/\bc'est-a-dire\b/gi, "c'est-à-dire"],
+  // Guillemets droits → typographiques (optionnel)
+  // Espaces en fin de ligne
+  [/[ \t]+$/gm, ''],
+  // Majuscule après point + espace (heuristique douce)
+  [/([.!?])\s+([a-zàâéèêëîïôùûü])/g, (m, p, l) => p + ' ' + l.toUpperCase()],
+];
+
+// Dictionnaire ortho FR — fautes très courantes mot par mot
+const FR_DICT = {
+  'appercu': 'aperçu','apperçu': 'aperçu',
+  'aprés': 'après','apres': 'après',
+  'arret': 'arrêt','arrêt': 'arrêt',
+  'asseoir': 'asseoir',
+  'bientot': 'bientôt','bientôt': 'bientôt',
+  'ca': 'ça',
+  'cependant': 'cependant',
+  'chateau': 'château',
+  'clé': 'clé','cle': 'clé',
+  'compte': 'compte',
+  'connaitre': 'connaître','connaître': 'connaître',
+  'cote': 'côte','côte': 'côte',
+  'couter': 'coûter','coût': 'coût',
+  'deja': 'déjà',
+  'depasser': 'dépasser',
+  'depuis': 'depuis',
+  'dernier': 'dernier',
+  'deux': 'deux',
+  'devenir': 'devenir',
+  'different': 'différent',
+  'difficile': 'difficile',
+  'diplome': 'diplôme',
+  'domaine': 'domaine',
+  'ecole': 'école',
+  'econome': 'économe',
+  'economie': 'économie',
+  'ecrire': 'écrire',
+  'element': 'élément',
+  'eleve': 'élève',
+  'entete': 'entête',
+  'etat': 'état',
+  'etre': 'être',
+  'etude': 'étude',
+  'evenement': 'événement','évènement': 'événement',
+  'evident': 'évident',
+  'examen': 'examen',
+  'experience': 'expérience',
+  'fenetre': 'fenêtre',
+  'fete': 'fête',
+  'foret': 'forêt',
+  'francais': 'français',
+  'gout': 'goût',
+  'grace': 'grâce',
+  'hopital': 'hôpital',
+  'hotel': 'hôtel',
+  'ile': 'île',
+  'image': 'image',
+  'interet': 'intérêt',
+  'jusqua': "jusqu'à",
+  'la': 'là',
+  'lecon': 'leçon',
+  'libre': 'libre',
+  'lumiere': 'lumière',
+  'maitrise': 'maîtrise',
+  'meme': 'même',
+  'modele': 'modèle',
+  'naif': 'naïf',
+  'noel': 'Noël',
+  'numero': 'numéro',
+  'ou': 'où',
+  'parmis': 'parmi',
+  'passe': 'passé',
+  'phenomene': 'phénomène',
+  'piece': 'pièce',
+  'piege': 'piège',
+  'pole': 'pôle',
+  'preferer': 'préférer',
+  'premiere': 'première',
+  'present': 'présent',
+  'probleme': 'problème',
+  'propre': 'propre',
+  'realiser': 'réaliser',
+  'recemment': 'récemment',
+  'recevoir': 'recevoir',
+  'recherche': 'recherche',
+  'reference': 'référence',
+  'regle': 'règle',
+  'repas': 'repas',
+  'reponse': 'réponse',
+  'reseau': 'réseau',
+  'resultat': 'résultat',
+  'resume': 'résumé',
+  'role': 'rôle',
+  'sante': 'santé',
+  'scene': 'scène',
+  'secretaire': 'secrétaire',
+  'serie': 'série',
+  'siege': 'siège',
+  'societe': 'société',
+  'specialite': 'spécialité',
+  'surete': 'sûreté',
+  'systeme': 'système',
+  'tache': 'tâche',
+  'telephone': 'téléphone',
+  'temoignage': 'témoignage',
+  'theatre': 'théâtre',
+  'theoreme': 'théorème',
+  'theorie': 'théorie',
+  'titre': 'titre',
+  'trop': 'trop',
+  'universite': 'université',
+  'verite': 'vérité',
+  'verifier': 'vérifier',
+  'vetement': 'vêtement',
+  'visite': 'visite',
+  'voila': 'voilà',
+  'zone': 'zone',
+};
+
+function localSpellCheck(text) {
+  let result = text;
+
+  // 1. Corrections par regex
+  FR_CORRECTIONS.forEach(([pattern, replacement]) => {
+    if (typeof replacement === 'function') {
+      result = result.replace(pattern, replacement);
+    } else {
+      result = result.replace(pattern, replacement);
+    }
+  });
+
+  // 2. Correction mot par mot (dictionnaire)
+  result = result.replace(/\b([a-zA-ZÀ-ÿ]+)\b/g, (word) => {
+    const lower = word.toLowerCase();
+    if (FR_DICT[lower]) {
+      // Préserver la casse si le mot original était en majuscule
+      const correction = FR_DICT[lower];
+      if (word[0] === word[0].toUpperCase() && correction[0] !== correction[0].toUpperCase()) {
+        return correction[0].toUpperCase() + correction.slice(1);
+      }
+      return correction;
+    }
+    return word;
+  });
+
+  return result;
+}
+
+document.getElementById('btn-local-spell').addEventListener('click', () => {
+  const ss = editor.selectionStart, se = editor.selectionEnd, hasSel = se > ss;
+  const target = hasSel ? editor.value.slice(ss, se) : editor.value;
+
+  if (!target.trim()) {
+    aiStatus.innerHTML = `<span style="color:var(--danger)">Document vide</span>`;
+    return;
+  }
+
+  aiStatus.innerHTML = `<div class="spinner"></div><span>Analyse…</span>`;
+
+  setTimeout(() => {
+    const result = localSpellCheck(target);
+
+    if (result === target) {
+      aiStatus.innerHTML = `<span style="color:var(--accent)">✓ Aucune correction nécessaire !</span>`;
+      setTimeout(() => { aiStatus.innerHTML = ''; }, 2500);
+      return;
+    }
+
+    aiPanel.classList.remove('open');
+    aiStatus.innerHTML = '';
+
+    const fullRevised = hasSel
+      ? editor.value.slice(0, ss) + result + editor.value.slice(se)
+      : result;
+
+    showDiff(editor.value, fullRevised);
+    document.querySelector('.diff-label').textContent = '✦ Corrections orthographiques';
+  }, 60);
+});
 
 // ═══ AI ══════════════════════════════════════
 const AI_PROMPTS = {
