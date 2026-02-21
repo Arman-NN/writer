@@ -1,338 +1,658 @@
 <!DOCTYPE html>
 <html lang="fr" data-theme="light">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
-<title>Writer</title>
-<link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" id="theme-meta" content="#f5f2eb"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
-<meta name="apple-mobile-web-app-title" content="Writer"/>
-<link rel="apple-touch-icon" href="icon-192.svg"/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Writer</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#f5f2eb" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="apple-touch-icon" href="icon-192.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root{
-  --bg:#f5f2eb; --bg2:#ede9e0; --surface:#fff;
-  --border:#d8d3c8; --text:#2c2825; --muted:#9a9088;
-  --faint:#c4bdb5; --accent:#1a6b4a; --accent-l:#e8f4ef;
-  --danger:#c0392b; --warn:#e67e22;
-  --mono:'JetBrains Mono','Courier New',monospace;
-  --serif:'Lora',Georgia,serif;
-  --w:680px; --tbh:48px;
-  --st:env(safe-area-inset-top,0px);
-  --sb:env(safe-area-inset-bottom,0px);
-  --tr:.18s ease;
-}
-[data-theme=dark]{
-  --bg:#1a1917; --bg2:#211f1c; --surface:#252320;
-  --border:#38352f; --text:#e8e4dc; --muted:#7a756e;
-  --faint:#4a4640; --accent:#4caf85; --accent-l:#1a2e24;
-}
+    :root {
+      --bg: #f5f2eb;
+      --bg2: #ede9e0;
+      --surface: #ffffff;
+      --border: #d8d3c8;
+      --text: #2c2825;
+      --text-muted: #9a9088;
+      --text-faint: #c4bdb5;
+      --accent: #1a6b4a;
+      --accent-light: #e8f4ef;
+      --danger: #c0392b;
+      --font-body: 'Lora', Georgia, serif;
+      --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+      --editor-width: 680px;
+      --toolbar-h: 52px;
+      --transition: 0.2s ease;
+    }
 
-html,body{height:100%;font-family:var(--serif);background:var(--bg);color:var(--text);overscroll-behavior:none;transition:background var(--tr),color var(--tr)}
+    [data-theme="dark"] {
+      --bg: #1a1917;
+      --bg2: #211f1c;
+      --surface: #252320;
+      --border: #38352f;
+      --text: #e8e4dc;
+      --text-muted: #7a756e;
+      --text-faint: #4a4640;
+      --accent: #4caf85;
+      --accent-light: #1a2e24;
+    }
 
-/* ── APP LAYOUT ── */
-#app{display:grid;grid-template-rows:calc(var(--tbh)+var(--st)) 1fr;height:100dvh;overflow:hidden}
+    html, body {
+      height: 100%;
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      transition: background var(--transition), color var(--transition);
+    }
 
-/* ── TOOLBAR ── */
-#tb{
-  display:flex;align-items:flex-end;gap:2px;
-  padding:var(--st) 12px 8px;
-  background:var(--bg2);border-bottom:1px solid var(--border);
-  z-index:100;transition:opacity var(--tr);
-}
-#tb .title{font-family:var(--mono);font-size:11px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 6px}
-.sep{width:1px;height:16px;background:var(--border);margin:0 3px;flex-shrink:0}
-.btn{
-  display:flex;align-items:center;justify-content:center;
-  width:30px;height:30px;border:none;background:transparent;
-  color:var(--muted);cursor:pointer;border-radius:5px;font-size:13px;
-  transition:background var(--tr),color var(--tr);
-  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
-}
-.btn:hover{background:var(--border);color:var(--text)}
-.btn.on{background:var(--accent-l);color:var(--accent)}
-.lbl{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.5px;width:auto;padding:0 7px}
-.aibtn{background:var(--accent)!important;color:#fff!important;width:auto;padding:0 10px;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.5px;gap:4px;border-radius:5px}
-.aibtn:hover{opacity:.85}
+    /* ─── LAYOUT ─── */
+    #app {
+      display: grid;
+      grid-template-rows: var(--toolbar-h) 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
 
-/* ── MAIN ── */
-#main{display:grid;grid-template-columns:1fr;overflow:hidden;position:relative}
-#main.split{grid-template-columns:1fr 1fr}
+    /* ─── TOOLBAR ─── */
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 16px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      transition: opacity var(--transition);
+      z-index: 100;
+    }
 
-/* ── EDITOR PANE ── */
-#epane{position:relative;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+    #toolbar .doc-title {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--text-muted);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0 8px;
+    }
 
-/* textarea transparent par dessus les overlays */
-#ed{
-  position:relative;z-index:3;
-  flex:1;width:100%;
-  padding:48px max(24px,calc((100% - var(--w))/2));
-  padding-bottom:calc(60px + var(--sb));
-  font-family:var(--mono);font-size:16px;line-height:1.85;
-  color:transparent;caret-color:var(--text);
-  background:transparent;border:none;outline:none;resize:none;
-  -webkit-overflow-scrolling:touch;
-  /* spellcheck natif désactivé car on gère nous-mêmes */
-  spellcheck:false;
-}
-#ed::placeholder{color:var(--faint)}
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
 
-/* ── RENDER OVERLAY (affiche le texte avec les soulignés) ── */
-#render{
-  position:absolute;inset:0;z-index:2;
-  pointer-events:none;overflow:hidden;
-  padding:48px max(24px,calc((100% - var(--w))/2));
-  padding-bottom:calc(60px + var(--sb));
-  font-family:var(--mono);font-size:16px;line-height:1.85;
-  color:var(--text);
-  white-space:pre-wrap;word-break:break-word;
-}
-/* mots avec fautes */
-.sp-e{
-  text-decoration:underline wavy var(--danger);
-  text-decoration-skip-ink:none;
-  cursor:pointer;border-radius:1px;
-  pointer-events:auto;
-}
-.sp-e:hover{background:rgba(192,57,43,.08)}
-/* ponctuation/style */
-.sp-w{
-  text-decoration:underline wavy var(--warn);
-  text-decoration-skip-ink:none;
-  cursor:pointer;
-  pointer-events:auto;
-}
+    .toolbar-group + .toolbar-group {
+      border-left: 1px solid var(--border);
+      margin-left: 6px;
+      padding-left: 6px;
+    }
 
-/* ── DIFF OVERLAY ── */
-#diff{
-  position:absolute;inset:0;z-index:4;
-  pointer-events:none;overflow:hidden;
-  padding:48px max(24px,calc((100% - var(--w))/2));
-  padding-bottom:calc(60px + var(--sb));
-  font-family:var(--mono);font-size:16px;line-height:1.85;
-  white-space:pre-wrap;word-break:break-word;
-  display:none;
-}
-#diff.on{display:block}
-.dd{text-decoration:line-through;color:var(--danger);opacity:.8}
-.di{color:var(--accent);background:var(--accent-l);border-radius:2px}
-.ds{opacity:.38}
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 15px;
+      transition: background var(--transition), color var(--transition);
+    }
 
-/* ── DIFF BAR ── */
-#diffbar{
-  display:none;position:absolute;
-  bottom:calc(16px + var(--sb));left:50%;
-  transform:translateX(-50%);
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:24px;padding:5px 7px;
-  box-shadow:0 4px 20px rgba(0,0,0,.15);
-  z-index:50;white-space:nowrap;align-items:center;gap:6px;
-}
-#diffbar.on{display:flex}
-.dlbl{font-family:var(--mono);font-size:10px;color:var(--muted);padding:0 4px}
-.ok{font-family:var(--mono);font-size:10px;font-weight:500;padding:5px 12px;background:var(--accent);color:#fff;border:none;border-radius:20px;cursor:pointer}
-.no{font-family:var(--mono);font-size:10px;font-weight:500;padding:5px 12px;background:var(--bg2);color:var(--muted);border:1px solid var(--border);border-radius:20px;cursor:pointer}
+    .btn:hover { background: var(--border); color: var(--text); }
+    .btn.active { background: var(--accent-light); color: var(--accent); }
 
-/* ── POPUP SUGGESTION ── */
-#popup{
-  position:fixed;z-index:500;
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:10px;padding:6px;
-  box-shadow:0 8px 32px rgba(0,0,0,.18);
-  min-width:160px;max-width:260px;
-  display:none;
-  animation:popIn .12s ease;
-}
-#popup.on{display:block}
-@keyframes popIn{from{transform:scale(.93) translateY(-4px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
-.pop-word{font-family:var(--mono);font-size:10px;color:var(--faint);padding:4px 8px 6px;border-bottom:1px solid var(--border);margin-bottom:4px;letter-spacing:.5px}
-.pop-item{
-  display:flex;align-items:center;gap:8px;
-  padding:7px 10px;border-radius:6px;cursor:pointer;
-  font-family:var(--mono);font-size:13px;color:var(--text);
-  transition:background var(--tr);
-}
-.pop-item:hover{background:var(--accent-l);color:var(--accent)}
-.pop-item .pop-icon{font-size:11px;opacity:.5}
-.pop-ignore{
-  padding:5px 10px;border-radius:6px;cursor:pointer;
-  font-family:var(--mono);font-size:11px;color:var(--muted);
-  border-top:1px solid var(--border);margin-top:4px;
-  transition:background var(--tr);
-}
-.pop-ignore:hover{background:var(--bg2)}
+    .btn-text {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 0 10px;
+      width: auto;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+    }
 
-/* ── PREVIEW ── */
-#ppane{overflow-y:auto;background:var(--surface);border-left:1px solid var(--border);display:none}
-#main.split #ppane{display:block}
-#prev{padding:48px 40px;max-width:640px;margin:0 auto;font-family:var(--serif);font-size:17px;line-height:1.8;color:var(--text)}
-#prev h1{font-size:2em;font-weight:500;margin:1.5em 0 .5em}
-#prev h2{font-size:1.4em;font-weight:500;margin:1.5em 0 .5em}
-#prev h3{font-size:1.15em;font-weight:500;margin:1.2em 0 .4em}
-#prev p{margin:0 0 1em}
-#prev strong{font-weight:600}
-#prev em{font-style:italic}
-#prev code{font-family:var(--mono);font-size:.85em;background:var(--bg2);padding:2px 5px;border-radius:3px}
-#prev pre{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:16px;margin:1em 0;overflow-x:auto}
-#prev pre code{background:none;padding:0}
-#prev blockquote{border-left:3px solid var(--accent);margin:1em 0;padding:4px 16px;color:var(--muted)}
-#prev ul,#prev ol{margin:0 0 1em 1.5em}
-#prev li{margin-bottom:4px}
-#prev a{color:var(--accent);text-decoration:underline}
-#prev hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+    .btn-ai {
+      background: var(--accent);
+      color: white;
+      width: auto;
+      padding: 0 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      gap: 5px;
+    }
 
-/* ── STATUS ── */
-#status{
-  position:fixed;bottom:calc(10px + var(--sb));right:14px;
-  font-family:var(--mono);font-size:10px;color:var(--faint);
-  pointer-events:none;transition:opacity var(--tr);z-index:10;
-}
+    .btn-ai:hover { background: color-mix(in srgb, var(--accent) 85%, black); color: white; }
+    .btn-ai.loading { opacity: 0.7; pointer-events: none; }
 
-/* ── MOBILE KB ── */
-#mkb{
-  display:none;position:fixed;bottom:0;left:0;right:0;
-  background:var(--bg2);border-top:1px solid var(--border);
-  padding:6px 8px calc(6px + var(--sb));
-  gap:4px;overflow-x:auto;z-index:80;scrollbar-width:none;
-}
-#mkb::-webkit-scrollbar{display:none}
-@media(max-width:768px)and(pointer:coarse){#mkb{display:flex}}
-.kb{
-  flex-shrink:0;padding:6px 11px;
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:6px;font-family:var(--mono);font-size:11px;
-  font-weight:500;color:var(--text);cursor:pointer;
-  white-space:nowrap;-webkit-tap-highlight-color:transparent;
-}
-.kb.ac{color:var(--accent);border-color:var(--accent);background:var(--accent-l)}
+    /* ─── MAIN AREA ─── */
+    #main {
+      display: grid;
+      grid-template-columns: 1fr;
+      overflow: hidden;
+      position: relative;
+    }
 
-/* ── FILE DRAWER ── */
-#fdraw{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;display:none;backdrop-filter:blur(3px)}
-#fdraw.on{display:flex}
-#fpanel{
-  width:min(300px,85vw);background:var(--surface);border-right:1px solid var(--border);
-  display:flex;flex-direction:column;height:100%;
-  padding-top:var(--st);animation:slideIn .22s ease;
-}
-@keyframes slideIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
-#fhead{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
-#fhead h3{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
-#flist{flex:1;overflow-y:auto;padding:8px}
-.fi{display:flex;align-items:center;gap:10px;padding:10px;border-radius:6px;cursor:pointer;transition:background var(--tr)}
-.fi:hover{background:var(--bg2)}
-.fi.on{background:var(--accent-l)}
-.fi-info{flex:1;min-width:0}
-.fi-name{font-family:var(--mono);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
-.fi.on .fi-name{color:var(--accent)}
-.fi-meta{font-size:10px;color:var(--faint);font-family:var(--mono);margin-top:2px}
-.fi-del{opacity:0;border:none;background:none;color:var(--danger);cursor:pointer;font-size:13px;padding:3px 5px;border-radius:4px}
-.fi:hover .fi-del{opacity:.5}
-@media(pointer:coarse){.fi-del{opacity:.35}}
-#ffoot{padding:12px;border-top:1px solid var(--border)}
-.fnew{width:100%;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:var(--mono);font-size:11px;font-weight:500;cursor:pointer}
+    #main.split { grid-template-columns: 1fr 1fr; }
 
-/* ── AI PANEL ── */
-#aipanel{
-  position:fixed;bottom:0;left:0;right:0;
-  background:var(--surface);border-top:1px solid var(--border);
-  z-index:150;transform:translateY(100%);
-  transition:transform .28s cubic-bezier(.4,0,.2,1);
-}
-#aipanel.on{transform:translateY(0)}
-#aiinner{max-width:720px;margin:0 auto;padding:14px 16px calc(14px + var(--sb))}
-#aihead{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-#aihead span{font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--accent);font-weight:500}
-#aimodes{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap}
-.amode{
-  font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.3px;
-  padding:4px 10px;border:1px solid var(--border);border-radius:20px;
-  background:transparent;color:var(--muted);cursor:pointer;
-  transition:all var(--tr);-webkit-tap-highlight-color:transparent;
-}
-.amode.on{background:var(--accent-l);border-color:var(--accent);color:var(--accent)}
-#airow{display:flex;gap:8px}
-#aiprompt{
-  flex:1;font-family:var(--mono);font-size:12px;
-  padding:8px 12px;background:var(--bg2);border:1px solid var(--border);
-  border-radius:8px;color:var(--text);outline:none;
-  transition:border-color var(--tr);
-}
-#aiprompt:focus{border-color:var(--accent)}
-#aistat{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:8px;min-height:16px;display:flex;align-items:center;gap:6px}
-.spin{width:10px;height:10px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+    /* ─── EDITOR PANE ─── */
+    #editor-pane {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+      border-right: 1px solid transparent;
+      transition: border-color var(--transition);
+    }
 
-/* ── API MODAL ── */
-#apimod{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
-#apimod.on{display:flex}
-#apibox{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:26px 22px;width:100%;max-width:400px;animation:popIn .2s ease}
-#apibox h2{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:6px}
-#apibox p{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6;font-family:var(--mono)}
-#apibox a{color:var(--accent)}
-#apikey{width:100%;font-family:var(--mono);font-size:12px;padding:9px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);outline:none;margin-bottom:12px}
-#apikey:focus{border-color:var(--accent)}
-#apiacts{display:flex;gap:8px;justify-content:flex-end}
+    #main.split #editor-pane { border-right-color: var(--border); }
 
-/* ── TOAST ── */
-#toast{
-  position:fixed;bottom:calc(48px + var(--sb));left:50%;
-  transform:translateX(-50%) translateY(8px);
-  background:var(--text);color:var(--bg);
-  font-family:var(--mono);font-size:10px;
-  padding:6px 13px;border-radius:20px;
-  opacity:0;transition:opacity .2s,transform .2s;
-  pointer-events:none;white-space:nowrap;z-index:400;
-}
-#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+    #editor {
+      flex: 1;
+      width: 100%;
+      padding: 48px max(32px, calc((100% - var(--editor-width)) / 2));
+      font-family: var(--font-mono);
+      font-size: 16px;
+      line-height: 1.85;
+      color: var(--text);
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      caret-color: var(--accent);
+      overflow-y: auto;
+      transition: padding var(--transition);
+    }
 
-/* ── FOCUS MODE ── */
-body.focus #tb{opacity:0;pointer-events:none}
-body.focus #tb:hover{opacity:1;pointer-events:all}
-body.focus #ed{padding-top:30vh}
-body.focus #render{padding-top:30vh}
-body.focus #status{opacity:.15}
+    #editor::placeholder { color: var(--text-faint); }
 
-/* ── RESPONSIVE ── */
-@media(max-width:640px){#main.split{grid-template-columns:1fr}#main.split #ppane{display:none}}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-</style>
+    #editor::selection {
+      background: var(--accent-light);
+    }
+
+    /* ─── FOCUS MODE ─── */
+    body.focus-mode #toolbar { opacity: 0; pointer-events: none; }
+    body.focus-mode #toolbar:hover { opacity: 1; pointer-events: all; }
+    body.focus-mode #editor {
+      padding-top: 30vh;
+    }
+
+    /* ─── PREVIEW PANE ─── */
+    #preview-pane {
+      overflow-y: auto;
+      background: var(--surface);
+      display: none;
+    }
+
+    #main.split #preview-pane { display: block; }
+
+    #preview-content {
+      padding: 48px 48px;
+      max-width: 640px;
+      margin: 0 auto;
+      font-family: var(--font-body);
+      font-size: 17px;
+      line-height: 1.8;
+      color: var(--text);
+    }
+
+    #preview-content h1, #preview-content h2, #preview-content h3 {
+      font-family: var(--font-body);
+      font-weight: 500;
+      margin: 1.5em 0 0.5em;
+      line-height: 1.3;
+    }
+    #preview-content h1 { font-size: 2em; }
+    #preview-content h2 { font-size: 1.4em; }
+    #preview-content h3 { font-size: 1.15em; }
+    #preview-content p { margin: 0 0 1em; }
+    #preview-content strong { font-weight: 600; }
+    #preview-content em { font-style: italic; }
+    #preview-content code {
+      font-family: var(--font-mono);
+      font-size: 0.85em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+    #preview-content pre {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+      overflow-x: auto;
+      margin: 1em 0;
+    }
+    #preview-content pre code { background: none; padding: 0; }
+    #preview-content blockquote {
+      border-left: 3px solid var(--accent);
+      margin: 1em 0;
+      padding: 4px 16px;
+      color: var(--text-muted);
+    }
+    #preview-content ul, #preview-content ol {
+      margin: 0 0 1em 1.5em;
+    }
+    #preview-content li { margin-bottom: 4px; }
+    #preview-content a { color: var(--accent); text-decoration: underline; }
+    #preview-content hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2em 0;
+    }
+
+    /* ─── STATUS BAR ─── */
+    #statusbar {
+      position: fixed;
+      bottom: 12px;
+      right: 16px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-faint);
+      letter-spacing: 0.5px;
+      pointer-events: none;
+      transition: opacity var(--transition);
+    }
+
+    body.focus-mode #statusbar { opacity: 0.3; }
+
+    /* ─── FILE DRAWER ─── */
+    #file-drawer {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 200;
+      display: none;
+      backdrop-filter: blur(4px);
+    }
+
+    #file-drawer.open { display: flex; }
+
+    #file-panel {
+      width: 300px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      animation: slideIn 0.2s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(0); }
+    }
+
+    #file-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    #file-panel-header h3 {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    #file-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+
+    .file-item:hover { background: var(--bg2); }
+    .file-item.active { background: var(--accent-light); }
+
+    .file-item-icon { font-size: 14px; opacity: 0.6; }
+
+    .file-item-info { flex: 1; min-width: 0; }
+
+    .file-item-name {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text);
+    }
+
+    .file-item.active .file-item-name { color: var(--accent); }
+
+    .file-item-meta {
+      font-size: 11px;
+      color: var(--text-faint);
+      font-family: var(--font-mono);
+      margin-top: 1px;
+    }
+
+    .file-delete {
+      opacity: 0;
+      border: none;
+      background: none;
+      color: var(--danger);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+
+    .file-item:hover .file-delete { opacity: 1; }
+
+    #file-panel-footer {
+      padding: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-new-file {
+      width: 100%;
+      padding: 10px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: opacity var(--transition);
+    }
+
+    .btn-new-file:hover { opacity: 0.85; }
+
+    /* ─── AI PANEL ─── */
+    #ai-panel {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      z-index: 150;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+    }
+
+    #ai-panel.open { transform: translateY(0); }
+
+    #ai-panel-inner {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 16px 20px;
+    }
+
+    #ai-panel-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    #ai-panel-header span {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    #ai-panel-header .close-ai {
+      margin-left: auto;
+    }
+
+    #ai-input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    #ai-prompt {
+      flex: 1;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 10px 14px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      outline: none;
+      transition: border-color var(--transition);
+    }
+
+    #ai-prompt:focus { border-color: var(--accent); }
+
+    #ai-output {
+      margin-top: 12px;
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text);
+      min-height: 0;
+      max-height: 200px;
+      overflow-y: auto;
+      padding: 0 2px;
+      white-space: pre-wrap;
+    }
+
+    #ai-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .btn-insert {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 6px 12px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+
+    .btn-discard {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 6px 12px;
+      background: var(--bg2);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    /* ─── API KEY MODAL ─── */
+    #api-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(6px);
+      z-index: 300;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #api-modal.open { display: flex; }
+
+    #api-modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 420px;
+      width: calc(100% - 32px);
+      animation: popIn 0.2s ease;
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    #api-modal-box h2 {
+      font-family: var(--font-body);
+      font-size: 20px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    #api-modal-box p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.6;
+      font-family: var(--font-mono);
+    }
+
+    #api-key-input {
+      width: 100%;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 10px 14px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      outline: none;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    #api-key-input:focus { border-color: var(--accent); }
+
+    #api-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+    /* ─── TOAST ─── */
+    #toast {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: var(--text);
+      color: var(--bg);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ─── CURSOR BLINK ─── */
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .ai-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: var(--accent);
+      vertical-align: text-bottom;
+      margin-left: 2px;
+      animation: blink 0.8s infinite;
+    }
+
+    /* ─── SCROLLBAR ─── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+    /* ─── MOBILE ─── */
+    @media (max-width: 600px) {
+      #main.split { grid-template-columns: 1fr; }
+      #main.split #preview-pane { display: none; }
+      #editor { padding: 32px 20px; }
+      #file-panel { width: 85vw; }
+    }
+  </style>
 </head>
 <body>
-<div id="app">
 
+<div id="app">
   <!-- TOOLBAR -->
-  <div id="tb">
-    <div style="display:flex;align-items:center;gap:2px">
-      <button class="btn" id="bfiles" title="Documents (⌘O)">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+  <div id="toolbar">
+    <div class="toolbar-group">
+      <button class="btn" id="btn-files" title="Fichiers (⌘O)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
       </button>
     </div>
-    <span class="title" id="doctitle">sans-titre.md</span>
-    <div style="display:flex;align-items:center;gap:2px">
-      <button class="btn lbl" id="bsc" title="Style Check">SC</button>
-      <div class="sep"></div>
-      <button class="btn lbl" id="bprev" title="Prévisualisation (⌘P)">MD</button>
-      <button class="btn" id="bfocus" title="Mode focus (⌘⇧F)">
-        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+
+    <span class="doc-title" id="doc-title">sans titre.md</span>
+
+    <div class="toolbar-group">
+      <button class="btn btn-text" id="btn-preview" title="Prévisualisation (⌘P)">MD</button>
+      <button class="btn" id="btn-focus" title="Mode focus (⌘⇧F)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+        </svg>
       </button>
-      <button class="btn" id="btheme" title="Thème">
-        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      <button class="btn" id="btn-theme" title="Thème">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
       </button>
-      <div class="sep"></div>
-      <button class="btn" id="bsave" title="Sauvegarder (⌘S)">
-        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+    </div>
+
+    <div class="toolbar-group">
+      <button class="btn" id="btn-save" title="Sauvegarder (⌘S)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+        </svg>
       </button>
-      <button class="btn" id="bexport" title="Exporter .md">
-        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <button class="btn" id="btn-export" title="Exporter .md">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
       </button>
-      <div class="sep"></div>
-      <button class="btn aibtn" id="bai" title="IA (⌘K)">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L13.8 8.2L20 10L13.8 11.8L12 18L10.2 11.8L4 10L10.2 8.2Z"/></svg>
+      <button class="btn btn-ai" id="btn-ai" title="IA (⌘K)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2L13.8 8.2L20 10L13.8 11.8L12 18L10.2 11.8L4 10L10.2 8.2Z"/>
+        </svg>
         IA
       </button>
     </div>
@@ -340,774 +660,540 @@ body.focus #status{opacity:.15}
 
   <!-- MAIN -->
   <div id="main">
-    <div id="epane">
-      <!-- Render overlay (texte + soulignés) -->
-      <div id="render"></div>
-      <!-- Diff overlay -->
-      <div id="diff"></div>
-      <!-- Textarea transparent par dessus -->
-      <textarea id="ed" placeholder="Commencez à écrire…" autocorrect="off" autocapitalize="sentences" spellcheck="false"></textarea>
-      <!-- Diff bar -->
-      <div id="diffbar">
-        <span class="dlbl">✦ Modifications</span>
-        <button class="ok" id="baccept">Accepter</button>
-        <button class="no" id="breject">Annuler</button>
-      </div>
+    <div id="editor-pane">
+      <textarea id="editor" placeholder="Commencez à écrire..." spellcheck="true"></textarea>
     </div>
-    <div id="ppane"><div id="prev"></div></div>
+    <div id="preview-pane">
+      <div id="preview-content"></div>
+    </div>
   </div>
 </div>
 
-<!-- STATUS -->
-<div id="status"><span id="wc">0 mots</span></div>
-
-<!-- POPUP SUGGESTION -->
-<div id="popup">
-  <div class="pop-word" id="pop-original"></div>
-  <div id="pop-items"></div>
-  <div class="pop-ignore" id="pop-ignore">Ignorer</div>
-</div>
-
-<!-- MOBILE KB -->
-<div id="mkb">
-  <button class="kb" data-i="**" data-w="1"><b>B</b></button>
-  <button class="kb" data-i="*" data-w="1"><i>I</i></button>
-  <button class="kb" data-i="# ">H1</button>
-  <button class="kb" data-i="## ">H2</button>
-  <button class="kb" data-i="### ">H3</button>
-  <button class="kb" data-i="- ">— Liste</button>
-  <button class="kb" data-i="> ">❝</button>
-  <button class="kb" data-i="`" data-w="1">` `</button>
-  <button class="kb" data-i="---&#10;">―</button>
-  <button class="kb ac" id="mkbai">✦ IA</button>
-</div>
+<!-- STATUS BAR -->
+<div id="statusbar"><span id="word-count">0 mots</span></div>
 
 <!-- FILE DRAWER -->
-<div id="fdraw">
-  <div id="fpanel">
-    <div id="fhead"><h3>Documents</h3><button class="btn" id="bfdclose">✕</button></div>
-    <div id="flist"></div>
-    <div id="ffoot"><button class="fnew" id="bnew">+ Nouveau document</button></div>
+<div id="file-drawer" id="file-drawer">
+  <div id="file-panel">
+    <div id="file-panel-header">
+      <h3>Documents</h3>
+      <button class="btn" id="btn-close-drawer">✕</button>
+    </div>
+    <div id="file-list"></div>
+    <div id="file-panel-footer">
+      <button class="btn-new-file" id="btn-new-file">+ Nouveau document</button>
+    </div>
   </div>
-  <div style="flex:1" id="fover"></div>
+  <div style="flex:1" id="drawer-overlay"></div>
 </div>
 
 <!-- AI PANEL -->
-<div id="aipanel">
-  <div id="aiinner">
-    <div id="aihead">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="var(--accent)"><path d="M12 2L13.8 8.2L20 10L13.8 11.8L12 18L10.2 11.8L4 10L10.2 8.2Z"/></svg>
+<div id="ai-panel">
+  <div id="ai-panel-inner">
+    <div id="ai-panel-header">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--accent)">
+        <path d="M12 2L13.8 8.2L20 10L13.8 11.8L12 18L10.2 11.8L4 10L10.2 8.2Z"/>
+      </svg>
       <span>Assistant IA</span>
-      <button class="btn" style="margin-left:auto" id="baiclose">✕</button>
+      <button class="btn close-ai" id="btn-close-ai">✕</button>
     </div>
-    <div id="aimodes">
-      <button class="amode on" data-m="correct">✓ Corriger</button>
-      <button class="amode" data-m="rephrase">↺ Reformuler</button>
-      <button class="amode" data-m="shorten">↙ Raccourcir</button>
-      <button class="amode" data-m="expand">↗ Développer</button>
-      <button class="amode" data-m="formal">◈ Formaliser</button>
-      <button class="amode" data-m="custom">… Personnalisé</button>
-    </div>
-    <div id="airow">
-      <input id="aiprompt" type="text" placeholder="Sélectionne du texte ou laisse vide pour tout traiter…"/>
-      <button class="btn aibtn" id="baisend">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    <div id="ai-input-row">
+      <input id="ai-prompt" type="text" placeholder="Ex: Continue ce texte, améliore ce paragraphe, écris une intro..." />
+      <button class="btn btn-ai" id="btn-ai-send">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
       </button>
     </div>
-    <div id="aistat"></div>
-  </div>
-</div>
-
-<!-- API MODAL -->
-<div id="apimod">
-  <div id="apibox">
-    <h2>Clé API Claude</h2>
-    <p>Entrez votre clé API Anthropic pour activer l'IA.<br>Stockée uniquement dans votre navigateur.<br>→ <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
-    <input id="apikey" type="password" placeholder="sk-ant-api03-…" autocomplete="off"/>
-    <div id="apiacts">
-      <button class="no" id="bapicancel">Annuler</button>
-      <button class="ok" id="bapisave">Sauvegarder</button>
+    <div id="ai-output" style="display:none"></div>
+    <div id="ai-actions" style="display:none">
+      <button class="btn-insert" id="btn-insert">↓ Insérer dans le texte</button>
+      <button class="btn-discard" id="btn-discard">Ignorer</button>
     </div>
   </div>
 </div>
 
+<!-- API KEY MODAL -->
+<div id="api-modal">
+  <div id="api-modal-box">
+    <h2>Clé API Anthropic</h2>
+    <p>Pour utiliser l'IA, entrez votre clé API Claude.<br>Elle est stockée uniquement dans votre navigateur.</p>
+    <input id="api-key-input" type="password" placeholder="sk-ant-..." />
+    <div id="api-modal-actions">
+      <button class="btn-discard" id="btn-modal-cancel">Annuler</button>
+      <button class="btn-insert" id="btn-modal-save">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
 <div id="toast"></div>
 
 <script>
-// ══════════════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════════════
-const DB='writer_v3', AK='writer_api';
-let S={
-  files:[], cur:null, focus:false, preview:false, sc:false,
-  aiMode:'correct', diff:null,
-  ignored:new Set(), // mots ignorés par l'utilisateur
-};
-try{S.files=JSON.parse(localStorage.getItem(DB)||'[]')}catch(e){}
-try{const ig=JSON.parse(localStorage.getItem(DB+'_ig')||'[]');S.ignored=new Set(ig)}catch(e){}
-
-// ══════════════════════════════════════════════════
-// ELEMENTS
-// ══════════════════════════════════════════════════
-const ed=document.getElementById('ed');
-const render=document.getElementById('render');
-const diffEl=document.getElementById('diff');
-const diffbar=document.getElementById('diffbar');
-const popup=document.getElementById('popup');
-const ppane=document.getElementById('ppane');
-const prev=document.getElementById('prev');
-const main=document.getElementById('main');
-const doctitle=document.getElementById('doctitle');
-const wcEl=document.getElementById('wc');
-const fdraw=document.getElementById('fdraw');
-const flist=document.getElementById('flist');
-const aipanel=document.getElementById('aipanel');
-const aiprompt=document.getElementById('aiprompt');
-const aistat=document.getElementById('aistat');
-const apimod=document.getElementById('apimod');
-const toast=document.getElementById('toast');
-
-// ══════════════════════════════════════════════════
-// UTILS
-// ══════════════════════════════════════════════════
-let _t; function showToast(m,d=2200){clearTimeout(_t);toast.textContent=m;toast.classList.add('on');_t=setTimeout(()=>toast.classList.remove('on'),d)}
-function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
-function wc(t){return t.trim()?t.trim().split(/\s+/).length:0}
-function fd(ts){return new Date(ts).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-
-// ══════════════════════════════════════════════════
-// FILES
-// ══════════════════════════════════════════════════
-function saveDB(){localStorage.setItem(DB,JSON.stringify(S.files))}
-function saveIgnored(){localStorage.setItem(DB+'_ig',JSON.stringify([...S.ignored]))}
-function createFile(name='Sans titre'){
-  const f={id:uid(),name,content:'',createdAt:Date.now(),updatedAt:Date.now()};
-  S.files.unshift(f);saveDB();return f;
-}
-function getCur(){return S.files.find(f=>f.id===S.cur)}
-function openFile(id){
-  hideDiff();closePopup();
-  const f=S.files.find(f=>f.id===id);if(!f)return;
-  S.cur=id;ed.value=f.content;
-  doctitle.textContent=f.name+'.md';
-  updateWC();buildRender();
-  if(S.preview)buildPreview();
-  renderFiles();closeDraw();
-  ed.focus();
-}
-function saveFile(quiet=false){
-  const f=getCur();if(!f)return;
-  f.content=ed.value;f.updatedAt=Date.now();
-  const line=ed.value.split('\n')[0].replace(/^#+\s*/,'').trim();
-  if(line)f.name=line.slice(0,50);
-  doctitle.textContent=f.name+'.md';
-  saveDB();renderFiles();
-  if(!quiet)showToast('Sauvegardé ✓');
-}
-function delFile(id){
-  if(!confirm('Supprimer ce document ?'))return;
-  S.files=S.files.filter(f=>f.id!==id);saveDB();
-  if(S.cur===id){S.cur=null;ed.value='';doctitle.textContent='sans-titre.md';buildRender();if(S.files.length)openFile(S.files[0].id)}
-  renderFiles();
-}
-function renderFiles(){
-  if(!S.files.length){flist.innerHTML='<div style="padding:20px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--faint)">Aucun document</div>';return}
-  flist.innerHTML='';
-  S.files.forEach(f=>{
-    const d=document.createElement('div');
-    d.className='fi'+(f.id===S.cur?' on':'');
-    d.innerHTML=`<div class="fi-info"><div class="fi-name">${esc(f.name)}</div><div class="fi-meta">${fd(f.updatedAt)} · ${wc(f.content)} mots</div></div><button class="fi-del">✕</button>`;
-    d.addEventListener('click',e=>{if(e.target.classList.contains('fi-del')){delFile(f.id);return}openFile(f.id)});
-    flist.appendChild(d);
-  });
-}
-
-// ══════════════════════════════════════════════════
-// MARKDOWN
-// ══════════════════════════════════════════════════
-function buildPreview(){
-  let h=ed.value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>')
-    .replace(/^---+$/gm,'<hr>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')
-    .replace(/`([^`]+)`/g,'<code>$1</code>').replace(/^\> (.+)$/gm,'<blockquote>$1</blockquote>')
-    .replace(/^\- (.+)$/gm,'<li>$1</li>').replace(/^\d+\. (.+)$/gm,'<li>$1</li>')
-    .replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2" target="_blank">$1</a>');
-  h=h.replace(/(<li>[^]*?<\/li>\n?)+/g,m=>`<ul>${m}</ul>`);
-  h=h.split('\n\n').map(b=>{const t=b.trim();if(!t)return'';if(/^<(h[1-3]|ul|ol|blockquote|hr|pre)/.test(t))return t;return`<p>${t.replace(/\n/g,'<br>')}</p>`}).join('\n');
-  prev.innerHTML=h;
-}
-function updateWC(){const w=wc(ed.value);wcEl.textContent=`${w} mot${w!==1?'s':''}`}
-
-// ══════════════════════════════════════════════════
-// CORRECTEUR ORTHOGRAPHIQUE TEMPS RÉEL
-// Dictionnaire FR — fautes → corrections + suggestions
-// ══════════════════════════════════════════════════
-
-// Structure : mot_faute → [suggestions...]
-const DICT = {
-  // Accents manquants
-  'deja':['déjà'],'bientot':['bientôt'],'etre':['être'],'voila':['voilà'],
-  'meme':['même'],'grace':['grâce'],'hopital':['hôpital'],'hotel':['hôtel'],
-  'ile':['île'],'fete':['fête'],'foret':['forêt'],'fenetre':['fenêtre'],
-  'ecole':['école'],'etat':['état'],'etude':['étude'],'eleve':['élève'],
-  'ecrire':['écrire'],'element':['élément'],'evident':['évident'],
-  'evenement':['événement'],'experience':['expérience'],'examen':['examen'],
-  'numero':['numéro'],'modele':['modèle'],'probleme':['problème'],
-  'systeme':['système'],'theme':['thème'],'theoreme':['théorème'],
-  'theorie':['théorie'],'theatre':['théâtre'],'lecon':['leçon'],
-  'francais':['français'],'garcon':['garçon'],'recu':['reçu'],
-  'apercu':['aperçu'],'appercu':['aperçu'],'apperçu':['aperçu'],
-  'gout':['goût'],'cout':['coût'],'cote':['côte'],'pole':['pôle'],
-  'role':['rôle'],'tache':['tâche'],'maitrise':['maîtrise'],
-  'chateau':['château'],'gateau':['gâteau'],'hopital':['hôpital'],
-  'naif':['naïf'],'noel':['Noël'],'interet':['intérêt'],
-  'caractere':['caractère'],'lumiere':['lumière'],'premiere':['première'],
-  'regle':['règle'],'siege':['siège'],'piece':['pièce'],'piege':['piège'],
-  'realiser':['réaliser'],'recemment':['récemment'],'resultat':['résultat'],
-  'reference':['référence'],'reseau':['réseau'],'reponse':['réponse'],
-  'recherche':['recherche'],'resume':['résumé'],'preferer':['préférer'],
-  'present':['présent'],'different':['différent'],'diplome':['diplôme'],
-  'specialite':['spécialité'],'societe':['société'],'sante':['santé'],
-  'secretaire':['secrétaire'],'serie':['série'],'scene':['scène'],
-  'universite':['université'],'verite':['vérité'],'verifier':['vérifier'],
-  'vetement':['vêtement'],'telephone':['téléphone'],'temoignage':['témoignage'],
-  'phenomene':['phénomène'],'poeme':['poème'],'poesie':['poésie'],
-  'depasser':['dépasser'],'eclaire':['éclairé'],'eclat':['éclat'],
-  'economie':['économie'],'domaine':['domaine'],'entete':['en-tête'],
-  'arret':['arrêt'],'interet':['intérêt'],'surete':['sûreté'],
-  'decouverte':['découverte'],'defaut':['défaut'],'leger':['léger'],
-  'memoire':['mémoire'],'peche':['pêche','péché'],'pret':['prêt','prêt'],
-  'clef':['clé'],'cle':['clé'],
-  // Mots souvent mal écrits
-  'parmis':['parmi'],'malgres':['malgré'],
-  'biensur':['bien sûr'],'biensûr':['bien sûr'],
-  'malheureusement':['malheureusement'], // correct mais souvent mal tapé
-  'nottamment':['notamment'],'notament':['notamment'],
-  'apparement':['apparemment'],'evidemment':['évidemment'],
-  'absolument':['absolument'],'recemment':['récemment'],
-  'generalement':['généralement'],'particulierement':['particulièrement'],
-  'habituellement':['habituellement'],'necessairement':['nécessairement'],
-  'definitvement':['définitivement'],'definitivement':['définitivement'],
-  'maintenant':['maintenant'],'immediatement':['immédiatement'],
-  'simplement':['simplement'],'seulement':['seulement'],
-  'facilement':['facilement'],'normalement':['normalement'],
-  'forcement':['forcément'],'finalement':['finalement'],
-  'egalement':['également'],'completement':['complètement'],
-  'probablement':['probablement'],'exactement':['exactement'],
-  'clairement':['clairement'],'litteralement':['littéralement'],
-  'reellement':['réellement'],'naturellement':['naturellement'],
-  'enticement':['entièrement'],'directement':['directement'],
-  'correctement':['correctement'],'rapidement':['rapidement'],
-  'lentement':['lentement'],'longuement':['longuement'],
-  'brievement':['brièvement'],'precisement':['précisément'],
-  'uniquement':['uniquement'],'visuellement':['visuellement'],
-  // Confusions homophoniques fréquentes
-  'quelle que soit':['quelle que soit'],
-  'quelque soit':['quelle que soit'],
-  'quand a':['quant à'],'quant a':['quant à'],
-  // Doubles consonnes manquantes
-  'aporter':['apporter'],'apos':['apport'],
-  'comencer':['commencer'],'recomencer':['recommencer'],
-  'conecter':['connecter'],'conection':['connexion'],
-  'acomodation':['accommodation'],'corespond':['correspond'],
-  'inteligent':['intelligent'],'inteligence':['intelligence'],
-  'exelent':['excellent'],'exelence':['excellence'],
-  'alergie':['allergie'],'alerjie':['allergie'],
-  'discuter':['discuter'],'aprocher':['approcher'],
-  'oportunite':['opportunité'],'oportunity':['opportunité'],
-  'diference':['différence'],'aference':['afférence'],
-  'atendre':['attendre'],'atention':['attention'],
-  'adrese':['adresse'],'adresser':['adresser'],
-  'bagage':['bagage'],'bagaje':['bagage'],
+// ─── STATE ───────────────────────────────────────────
+const DB_KEY = 'writer_files';
+const API_KEY_KEY = 'writer_api_key';
+let state = {
+  files: JSON.parse(localStorage.getItem(DB_KEY) || '[]'),
+  currentId: null,
+  focusMode: false,
+  previewMode: false,
+  aiOutput: '',
 };
 
-// Règles de grammaire et conjugaison
-// Format : {re, getSuggestions(match, fullText, pos)}
-const GRAMMAR_RULES = [
-  // "sa" vs "ça" devant verbes
-  {
-    re:/\bsa\s+(va|suffit|sert|marche|fonctionne|aide|fait|prend|dure|coûte|compte|importe|change|existe|arrive|vient|vaut|devient|reste|continue|finit|commence|dépend|tient|pose|sembl)/gi,
-    getSugs:(m)=>[m.replace(/^sa\b/i,'ça')],
-    type:'warn',desc:'Confusion sa/ça'
-  },
-  // "c'est" vs "ses" / "ces"
-  {
-    re:/\bces\s+(pourquoi|comment|parce que|donc|ainsi|alors|car)\b/gi,
-    getSugs:(m)=>["c'est "+m.split(/\s+/).slice(1).join(' ')],
-    type:'err',desc:'Confusion ces/c\'est'
-  },
-  // "et" vs "est"
-  {
-    re:/\b(il|elle|on|ce|c')\s+et\s+\b/gi,
-    getSugs:(m)=>[m.replace(/\bet\b/,'est')],
-    type:'err',desc:'Confusion et/est'
-  },
-  // "on" vs "ont"
-  {
-    re:/\bon\s+(un|une|des|le|la|les|deux|trois|quatre|cinq)\b/gi,
-    getSugs:(m)=>[m.replace(/^on\b/,'ont')],
-    type:'warn',desc:'Confusion on/ont'
-  },
-  // "sont" vs "son"
-  {
-    re:/\bsont\s+(ami|frère|sœur|père|mère|chien|chat|livre|voiture|maison|idée|problème|travail|temps|jour|mois|an|vie|mort|bien|mal)\b/gi,
-    getSugs:(m)=>[m.replace(/^sont\b/,'son')],
-    type:'warn',desc:'Confusion sont/son'
-  },
-  // Double espace
-  {
-    re:/  +/g,
-    getSugs:()=>[' '],
-    type:'warn',desc:'Double espace'
-  },
-  // Espace avant virgule ou point
-  {
-    re:/ ([,.])/g,
-    getSugs:(m)=>[m.trim()],
-    type:'warn',desc:'Espace avant ponctuation'
-  },
-  // Pas d'espace après virgule
-  {
-    re:/,([a-zA-ZÀ-ÿ])/g,
-    getSugs:(m)=>[m[0]+' '+m[1]],
-    type:'warn',desc:'Manque espace après virgule'
-  },
-  // "a" vs "à" : "il a faire" → "il a à faire" ou "va à"
-  {
-    re:/\b(je|tu|il|elle|on|nous|vous|ils|elles)\s+a\s+(fait|dit|vu|su|pu|voulu|dû|pu|cru|lu|reçu|pris|mis|venu|tenu|été|eu)\b/gi,
-    getSugs:()=>[], // correct (passé composé), skip
-    type:'ok',desc:''
-  },
-];
+// ─── ELEMENTS ─────────────────────────────────────────
+const editor = document.getElementById('editor');
+const previewContent = document.getElementById('preview-content');
+const main = document.getElementById('main');
+const docTitle = document.getElementById('doc-title');
+const wordCount = document.getElementById('word-count');
+const fileDrawer = document.getElementById('file-drawer');
+const fileList = document.getElementById('file-list');
+const aiPanel = document.getElementById('ai-panel');
+const aiOutput = document.getElementById('ai-output');
+const aiPrompt = document.getElementById('ai-prompt');
+const aiActions = document.getElementById('ai-actions');
+const apiModal = document.getElementById('api-modal');
+const toast = document.getElementById('toast');
 
-// Style Check — mots à signaler (iA Writer style)
-const STYLE_WORDS = new Set([
-  'très','vraiment','totalement','absolument','complètement','extrêmement',
-  'particulièrement','tellement','franchement','clairement','évidemment',
-  'certainement','probablement','peut-être','surtout','notamment','effectivement',
-  'littéralement','basiquement','globalement','généralement',
-  'en termes de','au niveau de','il est à noter','il convient de',
-  'dans un premier temps','dans un second temps','en conclusion','pour conclure',
-  'au final','en fin de compte','à l\'heure actuelle','de nos jours',
-  'chose','truc','machin','quelque chose',
-]);
-
-// ── Construire le regex unique des mots du dico ──
-const DICT_KEYS=Object.keys(DICT).filter(k=>DICT[k].length&&DICT[k][0].toLowerCase()!==k);
-const DICT_RE=new RegExp('\\b('+DICT_KEYS.map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')\\b','gi');
-
-// ── Construire regex Style Check ──
-const SC_WORDS=[...STYLE_WORDS].filter(w=>!w.includes(' '));
-const SC_RE=new RegExp('\\b('+SC_WORDS.map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')\\b','gi');
-
-// ══════════════════════════════════════════════════
-// BUILD RENDER OVERLAY
-// Affiche le texte avec les soulignés cliquables
-// ══════════════════════════════════════════════════
-let currentMarks=[]; // liste des erreurs détectées
-
-function buildRender(){
-  if(S.diff){return} // pendant un diff, on n'affiche pas le render
-  const text=ed.value;
-  if(!text){render.innerHTML='';currentMarks=[];return}
-
-  const marks=[];
-
-  // 1. Fautes du dictionnaire
-  const dr=new RegExp(DICT_RE.source,'gi');
-  let m;
-  while((m=dr.exec(text))!==null){
-    const word=m[0].toLowerCase();
-    if(S.ignored.has(word))continue;
-    if(DICT[word]){
-      marks.push({s:m.index,e:m.index+m[0].length,type:'err',word:m[0],sugs:DICT[word],desc:'Orthographe'});
-    }
-  }
-
-  // 2. Règles de grammaire
-  GRAMMAR_RULES.forEach(rule=>{
-    if(rule.type==='ok')return;
-    const rr=new RegExp(rule.re.source,rule.re.flags.includes('g')?rule.re.flags:rule.re.flags+'g');
-    while((m=rr.exec(text))!==null){
-      if(S.ignored.has(m[0].toLowerCase()))continue;
-      const sugs=rule.getSugs(m[0]);
-      if(!sugs.length)continue;
-      marks.push({s:m.index,e:m.index+m[0].length,type:rule.type,word:m[0],sugs,desc:rule.desc});
-    }
-  });
-
-  // 3. Style Check (si activé)
-  if(S.sc){
-    const sr=new RegExp(SC_RE.source,'gi');
-    while((m=sr.exec(text))!==null){
-      if(S.ignored.has(m[0].toLowerCase()))continue;
-      marks.push({s:m.index,e:m.index+m[0].length,type:'sc',word:m[0],sugs:[],desc:'Mot de remplissage'});
-    }
-  }
-
-  // Trier par position, dédupliquer
-  marks.sort((a,b)=>a.s-b.s);
-  const clean=[];let last=-1;
-  marks.forEach(mk=>{if(mk.s>=last){clean.push(mk);last=mk.e}});
-  currentMarks=clean;
-
-  // Construire le HTML
-  let html='',pos=0;
-  clean.forEach((mk,i)=>{
-    // texte avant
-    html+=esc(text.slice(pos,mk.s));
-    const cls=mk.type==='err'?'sp-e':mk.type==='sc'?'sp-sc':'sp-w';
-    html+=`<span class="${cls}" data-mk="${i}">${esc(text.slice(mk.s,mk.e))}</span>`;
-    pos=mk.e;
-  });
-  html+=esc(text.slice(pos));
-
-  // Styles sc si besoin
-  if(!document.getElementById('sc-style')){
-    const s=document.createElement('style');
-    s.id='sc-style';
-    s.textContent=`.sp-sc{text-decoration:line-through;text-decoration-color:var(--muted);opacity:.5;cursor:pointer;pointer-events:auto}`;
-    document.head.appendChild(s);
-  }
-
-  render.innerHTML=html;
-  render.scrollTop=ed.scrollTop;
+// ─── UTILS ────────────────────────────────────────────
+function showToast(msg, duration = 2000) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), duration);
 }
 
-// ══════════════════════════════════════════════════
-// POPUP — clic sur un mot souligné
-// ══════════════════════════════════════════════════
-let activeMarkIdx=null;
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
 
-function closePopup(){popup.classList.remove('on');activeMarkIdx=null}
+function countWords(text) {
+  return text.trim() ? text.trim().split(/\s+/).length : 0;
+}
 
-render.addEventListener('click',e=>{
-  const span=e.target.closest('[data-mk]');
-  if(!span){closePopup();return}
-  const idx=parseInt(span.dataset.mk);
-  const mk=currentMarks[idx];
-  if(!mk)return;
-  activeMarkIdx=idx;
-  showPopup(mk,span);
-  e.stopPropagation();
+function formatDate(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+}
+
+// ─── FILES ────────────────────────────────────────────
+function saveFiles() {
+  localStorage.setItem(DB_KEY, JSON.stringify(state.files));
+}
+
+function createFile(name = 'Sans titre') {
+  const file = {
+    id: generateId(),
+    name: name,
+    content: '',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  state.files.unshift(file);
+  saveFiles();
+  return file;
+}
+
+function getCurrentFile() {
+  return state.files.find(f => f.id === state.currentId);
+}
+
+function openFile(id) {
+  const file = state.files.find(f => f.id === id);
+  if (!file) return;
+  state.currentId = id;
+  editor.value = file.content;
+  docTitle.textContent = file.name + '.md';
+  updateWordCount();
+  updatePreview();
+  renderFileList();
+  closeDrawer();
+}
+
+function saveCurrentFile() {
+  const file = getCurrentFile();
+  if (!file) return;
+  file.content = editor.value;
+  file.updatedAt = Date.now();
+  // Auto-name from first line
+  const firstLine = editor.value.split('\n')[0].replace(/^#+\s*/, '').trim();
+  if (firstLine) file.name = firstLine.slice(0, 40);
+  docTitle.textContent = file.name + '.md';
+  saveFiles();
+  renderFileList();
+  showToast('Sauvegardé ✓');
+}
+
+function deleteFile(id) {
+  state.files = state.files.filter(f => f.id !== id);
+  saveFiles();
+  if (state.currentId === id) {
+    state.currentId = null;
+    editor.value = '';
+    docTitle.textContent = 'sans titre.md';
+    if (state.files.length > 0) openFile(state.files[0].id);
+  }
+  renderFileList();
+}
+
+function renderFileList() {
+  fileList.innerHTML = '';
+  if (state.files.length === 0) {
+    fileList.innerHTML = `<div style="padding:20px;text-align:center;font-family:var(--font-mono);font-size:12px;color:var(--text-faint)">Aucun document</div>`;
+    return;
+  }
+  state.files.forEach(file => {
+    const div = document.createElement('div');
+    div.className = 'file-item' + (file.id === state.currentId ? ' active' : '');
+    const preview = file.content.replace(/^#+\s*/gm, '').split('\n').filter(Boolean)[1] || '';
+    div.innerHTML = `
+      <div class="file-item-icon">◈</div>
+      <div class="file-item-info">
+        <div class="file-item-name">${file.name}</div>
+        <div class="file-item-meta">${formatDate(file.updatedAt)} · ${countWords(file.content)} mots</div>
+      </div>
+      <button class="file-delete" data-id="${file.id}" title="Supprimer">✕</button>
+    `;
+    div.addEventListener('click', (e) => {
+      if (e.target.classList.contains('file-delete')) return;
+      openFile(file.id);
+    });
+    div.querySelector('.file-delete').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm(`Supprimer "${file.name}" ?`)) deleteFile(file.id);
+    });
+    fileList.appendChild(div);
+  });
+}
+
+// ─── MARKDOWN PARSER (simple) ─────────────────────────
+function parseMarkdown(md) {
+  let html = md
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^---+$/gm, '<hr>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/^\> (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/^\- (.+)$/gm, '<li>$1</li>')
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>');
+
+  // Wrap li in ul
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`);
+
+  // Paragraphs
+  html = html.split('\n\n').map(block => {
+    if (/^<(h[1-3]|ul|ol|blockquote|hr|pre)/.test(block.trim())) return block;
+    const trimmed = block.trim();
+    if (!trimmed) return '';
+    return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
+  }).join('\n');
+
+  return html;
+}
+
+function updatePreview() {
+  previewContent.innerHTML = parseMarkdown(editor.value);
+}
+
+function updateWordCount() {
+  const words = countWords(editor.value);
+  const chars = editor.value.length;
+  wordCount.textContent = `${words} mot${words !== 1 ? 's' : ''} · ${chars} car.`;
+}
+
+// ─── UI CONTROLS ──────────────────────────────────────
+function openDrawer() {
+  renderFileList();
+  fileDrawer.classList.add('open');
+}
+
+function closeDrawer() {
+  fileDrawer.classList.remove('open');
+}
+
+document.getElementById('btn-files').addEventListener('click', openDrawer);
+document.getElementById('btn-close-drawer').addEventListener('click', closeDrawer);
+document.getElementById('drawer-overlay').addEventListener('click', closeDrawer);
+
+document.getElementById('btn-new-file').addEventListener('click', () => {
+  const file = createFile('Sans titre');
+  openFile(file.id);
+  showToast('Nouveau document créé');
 });
 
-function showPopup(mk,spanEl){
-  const orig=document.getElementById('pop-original');
-  const items=document.getElementById('pop-items');
-  orig.textContent=`"${mk.word}" — ${mk.desc}`;
-  items.innerHTML='';
+document.getElementById('btn-preview').addEventListener('click', () => {
+  state.previewMode = !state.previewMode;
+  main.classList.toggle('split', state.previewMode);
+  document.getElementById('btn-preview').classList.toggle('active', state.previewMode);
+  if (state.previewMode) updatePreview();
+});
 
-  if(mk.sugs.length){
-    mk.sugs.forEach(sug=>{
-      const d=document.createElement('div');
-      d.className='pop-item';
-      d.innerHTML=`<span class="pop-icon">→</span><span>${esc(sug)}</span>`;
-      d.addEventListener('click',()=>{
-        applyCorrection(mk,sug);
-        closePopup();
-      });
-      items.appendChild(d);
+document.getElementById('btn-focus').addEventListener('click', () => {
+  state.focusMode = !state.focusMode;
+  document.body.classList.toggle('focus-mode', state.focusMode);
+  document.getElementById('btn-focus').classList.toggle('active', state.focusMode);
+  if (state.focusMode) editor.focus();
+});
+
+document.getElementById('btn-theme').addEventListener('click', () => {
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  document.documentElement.dataset.theme = isDark ? 'light' : 'dark';
+  localStorage.setItem('writer_theme', isDark ? 'light' : 'dark');
+});
+
+document.getElementById('btn-save').addEventListener('click', () => {
+  if (!getCurrentFile()) {
+    const file = createFile('Sans titre');
+    state.currentId = file.id;
+  }
+  saveCurrentFile();
+});
+
+document.getElementById('btn-export').addEventListener('click', () => {
+  const content = editor.value;
+  const file = getCurrentFile();
+  const name = (file?.name || 'document') + '.md';
+  const blob = new Blob([content], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  showToast('Fichier exporté ✓');
+});
+
+// ─── EDITOR EVENTS ────────────────────────────────────
+let autoSaveTimer;
+editor.addEventListener('input', () => {
+  updateWordCount();
+  if (state.previewMode) updatePreview();
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    if (getCurrentFile()) saveCurrentFile();
+  }, 1500);
+});
+
+editor.addEventListener('keydown', (e) => {
+  // Tab → indent
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const start = editor.selectionStart;
+    editor.value = editor.value.slice(0, start) + '  ' + editor.value.slice(editor.selectionEnd);
+    editor.selectionStart = editor.selectionEnd = start + 2;
+  }
+  // Cmd+S → save
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+    e.preventDefault();
+    if (!getCurrentFile()) {
+      const file = createFile('Sans titre');
+      state.currentId = file.id;
+    }
+    saveCurrentFile();
+  }
+  // Cmd+K → AI
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    openAI();
+  }
+  // Escape → exit focus
+  if (e.key === 'Escape' && state.focusMode) {
+    state.focusMode = false;
+    document.body.classList.remove('focus-mode');
+    document.getElementById('btn-focus').classList.remove('active');
+  }
+});
+
+// ─── AI ───────────────────────────────────────────────
+function openAI() {
+  aiPanel.classList.add('open');
+  aiOutput.style.display = 'none';
+  aiActions.style.display = 'none';
+  state.aiOutput = '';
+  aiPrompt.value = '';
+  aiPrompt.focus();
+}
+
+document.getElementById('btn-ai').addEventListener('click', openAI);
+document.getElementById('btn-close-ai').addEventListener('click', () => aiPanel.classList.remove('open'));
+
+aiPrompt.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendAI();
+  }
+});
+
+document.getElementById('btn-ai-send').addEventListener('click', sendAI);
+
+async function sendAI() {
+  const apiKey = localStorage.getItem(API_KEY_KEY);
+  if (!apiKey) {
+    apiModal.classList.add('open');
+    return;
+  }
+
+  const prompt = aiPrompt.value.trim();
+  if (!prompt) return;
+
+  const context = editor.value.slice(-2000); // derniers 2000 chars comme contexte
+  const systemPrompt = `Tu es un assistant d'écriture expert. L'utilisateur travaille sur un document. 
+Réponds de manière concise et directement utilisable dans le texte.
+Ne répète pas les instructions, donne uniquement le contenu demandé.
+Réponds dans la même langue que le document (prioritairement français si ambigu).`;
+
+  const userMessage = context
+    ? `Voici le contexte du document actuel:\n---\n${context}\n---\n\nInstruction: ${prompt}`
+    : prompt;
+
+  aiOutput.style.display = 'block';
+  aiActions.style.display = 'none';
+  aiOutput.innerHTML = '<span class="ai-cursor"></span>';
+  state.aiOutput = '';
+
+  const sendBtn = document.getElementById('btn-ai-send');
+  sendBtn.style.opacity = '0.5';
+  sendBtn.style.pointerEvents = 'none';
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 800,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userMessage }],
+        stream: true,
+      }),
     });
-  } else if(mk.type==='sc'){
-    const d=document.createElement('div');
-    d.className='pop-item';
-    d.innerHTML=`<span class="pop-icon">✕</span><span>Supprimer ce mot</span>`;
-    d.addEventListener('click',()=>{
-      // Supprimer le mot et l'espace autour
-      const text=ed.value;
-      const before=text.slice(0,mk.s);
-      const after=text.slice(mk.e);
-      ed.value=(before+after).replace(/  +/g,' ').replace(/^ /,'');
-      buildRender();updateWC();
-      if(getCur())saveFile(true);
-      closePopup();
-    });
-    items.appendChild(d);
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || 'Erreur API');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
+
+      for (const line of lines) {
+        const data = line.slice(6);
+        if (data === '[DONE]') continue;
+        try {
+          const json = JSON.parse(data);
+          if (json.type === 'content_block_delta' && json.delta?.text) {
+            state.aiOutput += json.delta.text;
+            aiOutput.innerHTML = escapeHtml(state.aiOutput) + '<span class="ai-cursor"></span>';
+            aiOutput.scrollTop = aiOutput.scrollHeight;
+          }
+        } catch (_) {}
+      }
+    }
+
+    aiOutput.innerHTML = escapeHtml(state.aiOutput);
+    aiActions.style.display = 'flex';
+
+  } catch (err) {
+    aiOutput.innerHTML = `<span style="color:var(--danger);font-family:var(--font-mono);font-size:12px">⚠ ${err.message}</span>`;
+    if (err.message.includes('API key') || err.message.includes('auth')) {
+      apiModal.classList.add('open');
+    }
+  } finally {
+    sendBtn.style.opacity = '';
+    sendBtn.style.pointerEvents = '';
+  }
+}
+
+function escapeHtml(text) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+document.getElementById('btn-insert').addEventListener('click', () => {
+  if (!state.aiOutput) return;
+  const pos = editor.selectionEnd;
+  const before = editor.value.slice(0, pos);
+  const after = editor.value.slice(pos);
+  const sep = before && !before.endsWith('\n') ? '\n\n' : '';
+  editor.value = before + sep + state.aiOutput + '\n' + after;
+  editor.selectionStart = editor.selectionEnd = pos + sep.length + state.aiOutput.length + 1;
+  editor.focus();
+  aiPanel.classList.remove('open');
+  updateWordCount();
+  if (state.previewMode) updatePreview();
+  if (!getCurrentFile()) {
+    const file = createFile('Sans titre');
+    state.currentId = file.id;
+  }
+  saveCurrentFile();
+  showToast('Texte inséré ✓');
+});
+
+document.getElementById('btn-discard').addEventListener('click', () => {
+  aiOutput.style.display = 'none';
+  aiActions.style.display = 'none';
+  state.aiOutput = '';
+});
+
+// ─── API KEY MODAL ────────────────────────────────────
+document.getElementById('btn-modal-save').addEventListener('click', () => {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key) return;
+  localStorage.setItem(API_KEY_KEY, key);
+  apiModal.classList.remove('open');
+  showToast('Clé API sauvegardée ✓');
+  sendAI();
+});
+
+document.getElementById('btn-modal-cancel').addEventListener('click', () => {
+  apiModal.classList.remove('open');
+});
+
+// ─── KEYBOARD SHORTCUTS ───────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'o') { e.preventDefault(); openDrawer(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'p') { e.preventDefault(); document.getElementById('btn-preview').click(); }
+  if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'f') { e.preventDefault(); document.getElementById('btn-focus').click(); }
+});
+
+// ─── INIT ─────────────────────────────────────────────
+function init() {
+  // Restore theme
+  const savedTheme = localStorage.getItem('writer_theme');
+  if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+
+  // Load files
+  if (state.files.length > 0) {
+    openFile(state.files[0].id);
   } else {
-    items.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--faint);padding:6px 10px">Pas de suggestion automatique</div>';
+    // Create welcome file
+    const welcome = createFile('Bienvenue');
+    welcome.content = `# Bienvenue dans Writer\n\nUn éditeur minimaliste, inspiré de iA Writer.\n\n## Fonctionnalités\n\n- **Markdown** avec prévisualisation côte à côte\n- **Mode focus** pour écrire sans distraction\n- **Sauvegarde locale** automatique\n- **IA intégrée** via Claude (⌘K)\n\n## Raccourcis\n\n| Action | Raccourci |\n|---|---|\n| Sauvegarder | ⌘S |\n| Ouvrir fichiers | ⌘O |\n| Prévisualisation | ⌘P |\n| Mode focus | ⌘⇧F |\n| Assistant IA | ⌘K |\n\nBonne écriture ✦`;
+    saveFiles();
+    openFile(welcome.id);
   }
 
-  // Position du popup
-  popup.classList.add('on');
-  const rect=spanEl.getBoundingClientRect();
-  const pw=popup.offsetWidth||200;
-  const ph=popup.offsetHeight||120;
-  let left=rect.left;
-  let top=rect.bottom+6;
-  if(left+pw>window.innerWidth-8)left=window.innerWidth-pw-8;
-  if(top+ph>window.innerHeight-8)top=rect.top-ph-6;
-  popup.style.left=left+'px';
-  popup.style.top=top+'px';
+  updateWordCount();
 }
 
-document.getElementById('pop-ignore').addEventListener('click',()=>{
-  if(activeMarkIdx===null)return;
-  const mk=currentMarks[activeMarkIdx];
-  S.ignored.add(mk.word.toLowerCase());
-  saveIgnored();
-  closePopup();
-  buildRender();
-});
-
-function applyCorrection(mk,sug){
-  const text=ed.value;
-  ed.value=text.slice(0,mk.s)+sug+text.slice(mk.e);
-  buildRender();updateWC();
-  if(getCur())saveFile(true);
+// Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
-// Fermer popup en cliquant ailleurs
-document.addEventListener('click',e=>{
-  if(!popup.contains(e.target)&&!render.contains(e.target))closePopup();
-});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closePopup()});
-
-// ══════════════════════════════════════════════════
-// DIFF ENGINE
-// ══════════════════════════════════════════════════
-function computeDiff(a,b){
-  const tok=s=>s.match(/\S+|\s+/g)||[];
-  const A=tok(a),B=tok(b);
-  const m=A.length,n=B.length;
-  const dp=Array.from({length:m+1},()=>new Array(n+1).fill(0));
-  for(let i=m-1;i>=0;i--)for(let j=n-1;j>=0;j--)
-    dp[i][j]=A[i]===B[j]?1+dp[i+1][j+1]:Math.max(dp[i+1][j],dp[i][j+1]);
-  const diff=[];let i=0,j=0;
-  while(i<m||j<n){
-    if(i<m&&j<n&&A[i]===B[j]){diff.push({t:'s',v:A[i]});i++;j++}
-    else if(j<n&&(i>=m||dp[i][j+1]>=dp[i+1][j])){diff.push({t:'i',v:B[j]});j++}
-    else{diff.push({t:'d',v:A[i]});i++}
-  }
-  return diff;
-}
-
-function showDiff(original,revised){
-  S.diff={original,revised};
-  render.style.display='none'; // cache le render spell check
-  const d=computeDiff(original,revised);
-  let html=d.map(x=>{
-    const v=esc(x.v);
-    if(x.t==='s')return`<span class="ds">${v}</span>`;
-    if(x.t==='i')return`<span class="di">${v}</span>`;
-    return`<span class="dd">${v}</span>`;
-  }).join('');
-  diffEl.innerHTML=html;diffEl.classList.add('on');
-  diffbar.classList.add('on');diffEl.scrollTop=ed.scrollTop;
-}
-
-function hideDiff(){
-  S.diff=null;
-  diffEl.classList.remove('on');diffbar.classList.remove('on');diffEl.innerHTML='';
-  render.style.display='';
-  buildRender();
-}
-
-document.getElementById('baccept').addEventListener('click',()=>{
-  if(!S.diff)return;
-  ed.value=S.diff.revised;hideDiff();updateWC();
-  if(S.preview)buildPreview();
-  if(!getCur()){const f=createFile();S.cur=f.id}
-  saveFile(true);showToast('Accepté ✓');
-});
-document.getElementById('breject').addEventListener('click',()=>{hideDiff();showToast('Annulé')});
-
-// ══════════════════════════════════════════════════
-// EDITOR EVENTS
-// ══════════════════════════════════════════════════
-let _as,_sp;
-ed.addEventListener('input',()=>{
-  updateWC();
-  if(S.preview)buildPreview();
-  // Lancer le correcteur avec délai (ne pas bloquer la frappe)
-  clearTimeout(_sp);_sp=setTimeout(buildRender,400);
-  clearTimeout(_as);_as=setTimeout(()=>{if(getCur())saveFile(true)},1800);
-});
-
-ed.addEventListener('keydown',e=>{
-  if(e.key==='Tab'){e.preventDefault();const s=ed.selectionStart;ed.value=ed.value.slice(0,s)+'  '+ed.value.slice(ed.selectionEnd);ed.selectionStart=ed.selectionEnd=s+2;buildRender()}
-  if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();if(!getCur()){const f=createFile();S.cur=f.id}saveFile()}
-  if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openAI()}
-  if(e.key==='Escape'){
-    if(popup.classList.contains('on')){closePopup();return}
-    if(S.diff){hideDiff();return}
-    if(aipanel.classList.contains('on')){aipanel.classList.remove('on');return}
-    if(S.focus){S.focus=false;document.body.classList.remove('focus');document.getElementById('bfocus').classList.remove('on')}
-  }
-});
-
-// Sync scroll textarea → overlays
-ed.addEventListener('scroll',()=>{
-  render.scrollTop=ed.scrollTop;
-  diffEl.scrollTop=ed.scrollTop;
-});
-
-// ══════════════════════════════════════════════════
-// TOOLBAR ACTIONS
-// ══════════════════════════════════════════════════
-const openDraw=()=>{renderFiles();fdraw.classList.add('on')};
-const closeDraw=()=>fdraw.classList.remove('on');
-
-document.getElementById('bfiles').addEventListener('click',openDraw);
-document.getElementById('bfdclose').addEventListener('click',closeDraw);
-document.getElementById('fover').addEventListener('click',closeDraw);
-document.getElementById('bnew').addEventListener('click',()=>{const f=createFile();openFile(f.id);showToast('Nouveau document')});
-
-document.getElementById('bprev').addEventListener('click',()=>{
-  S.preview=!S.preview;main.classList.toggle('split',S.preview);
-  document.getElementById('bprev').classList.toggle('on',S.preview);
-  if(S.preview)buildPreview();
-});
-
-document.getElementById('bfocus').addEventListener('click',()=>{
-  S.focus=!S.focus;document.body.classList.toggle('focus',S.focus);
-  document.getElementById('bfocus').classList.toggle('on',S.focus);
-  if(S.focus)ed.focus();
-});
-
-document.getElementById('btheme').addEventListener('click',()=>{
-  const dk=document.documentElement.dataset.theme==='dark';
-  const nx=dk?'light':'dark';
-  document.documentElement.dataset.theme=nx;
-  document.getElementById('theme-meta').content=nx==='dark'?'#1a1917':'#f5f2eb';
-  localStorage.setItem('writer_theme',nx);
-});
-
-document.getElementById('bsave').addEventListener('click',()=>{
-  if(!getCur()){const f=createFile();S.cur=f.id}saveFile();
-});
-
-document.getElementById('bexport').addEventListener('click',()=>{
-  const name=(getCur()?.name||'document')+'.md';
-  const blob=new Blob([ed.value],{type:'text/markdown'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();
-  showToast('Exporté ✓');
-});
-
-document.getElementById('bsc').addEventListener('click',()=>{
-  S.sc=!S.sc;document.getElementById('bsc').classList.toggle('on',S.sc);
-  buildRender();
-  showToast(S.sc?'Style Check activé':'Style Check désactivé');
-});
-
-// ══════════════════════════════════════════════════
-// MOBILE KB
-// ══════════════════════════════════════════════════
-document.querySelectorAll('.kb[data-i]').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    const ins=btn.dataset.i.replace('&#10;','\n'),wrap=btn.dataset.w==='1';
-    const s=ed.selectionStart,e2=ed.selectionEnd,sel=ed.value.slice(s,e2);
-    if(wrap&&sel){ed.value=ed.value.slice(0,s)+ins+sel+ins+ed.value.slice(e2);ed.selectionStart=s+ins.length;ed.selectionEnd=s+ins.length+sel.length}
-    else{const ls=ed.value.lastIndexOf('\n',s-1)+1;
-      if(!wrap&&(ins.startsWith('#')||ins.startsWith('-')||ins.startsWith('>'))){ed.value=ed.value.slice(0,ls)+ins+ed.value.slice(ls);ed.selectionStart=ed.selectionEnd=ls+ins.length}
-      else{ed.value=ed.value.slice(0,s)+ins+ed.value.slice(e2);ed.selectionStart=ed.selectionEnd=s+ins.length}}
-    ed.focus();ed.dispatchEvent(new Event('input'));
-  });
-});
-document.getElementById('mkbai').addEventListener('click',openAI);
-
-// ══════════════════════════════════════════════════
-// AI
-// ══════════════════════════════════════════════════
-const AI_P={
-  correct:"Corrige UNIQUEMENT les fautes d'orthographe, de grammaire et de ponctuation. Ne modifie pas le style. Retourne uniquement le texte corrigé.",
-  rephrase:"Reformule ce texte pour le rendre plus clair et fluide, en gardant le sens. Retourne uniquement le texte reformulé.",
-  shorten:"Raccourcis ce texte : supprime les redondances. Retourne uniquement le texte raccourci.",
-  expand:"Développe ce texte avec plus de détails. Retourne uniquement le texte développé.",
-  formal:"Réécris dans un registre formel et professionnel. Retourne uniquement le texte réécrit.",
-  custom:'',
-};
-
-let aiMode='correct';
-document.querySelectorAll('.amode').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.amode').forEach(b=>b.classList.remove('on'));
-    btn.classList.add('on');aiMode=btn.dataset.m;
-    if(aiMode==='custom'){aiprompt.placeholder='Décris ta demande…';aiprompt.focus()}
-    else aiprompt.placeholder='Précisions optionnelles…';
-  });
-});
-
-function openAI(){
-  aipanel.classList.add('on');
-  const sel=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim();
-  aistat.innerHTML=sel
-    ?`<span style="color:var(--accent)">✓ ${wc(sel)} mots sélectionnés</span>`
-    :`<span style="color:var(--faint)">Aucune sélection — tout le document sera traité</span>`;
-}
-
-document.getElementById('bai').addEventListener('click',openAI);
-document.getElementById('baiclose').addEventListener('click',()=>{aipanel.classList.remove('on');aistat.innerHTML=''});
-aiprompt.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI()}});
-document.getElementById('baisend').addEventListener('click',sendAI);
-
-async function sendAI(){
-  const apiKey=localStorage.getItem(AK);
-  if(!apiKey){apimod.classList.add('on');return}
-  const ss=ed.selectionStart,se=ed.selectionEnd,hasSel=se>ss;
-  const target=hasSel?ed.value.slice(ss,se):ed.value;
-  if(!target.trim()){aistat.innerHTML=`<span style="color:var(--danger)">Document vide</span>`;return}
-  const custom=aiprompt.value.trim();
-  let prompt=aiMode==='custom'?(custom||null):AI_P[aiMode]+(custom?'\nPrécision: '+custom:'');
-  if(!prompt){aistat.innerHTML=`<span style="color:var(--danger)">Décris ta demande</span>`;return}
-  aistat.innerHTML=`<div class="spin"></div><span>En cours…</span>`;
-  const sb=document.getElementById('baisend');sb.style.opacity='.5';sb.style.pointerEvents='none';
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:`${prompt}\n\n---\n${target}\n---`}]})
-    });
-    if(!res.ok){const e=await res.json();throw new Error(e.error?.message||`Erreur ${res.status}`)}
-    const data=await res.json();
-    const revised=data.content?.[0]?.text?.trim();
-    if(!revised)throw new Error('Réponse vide');
-    aipanel.classList.remove('on');aistat.innerHTML='';
-    const full=hasSel?ed.value.slice(0,ss)+revised+ed.value.slice(se):revised;
-    showDiff(ed.value,full);
-  }catch(err){
-    aistat.innerHTML=`<span style="color:var(--danger)">⚠ ${err.message}</span>`;
-    if(err.message.includes('401')||err.message.toLowerCase().includes('key'))setTimeout(()=>apimod.classList.add('on'),400);
-  }finally{sb.style.opacity='';sb.style.pointerEvents=''}
-}
-
-// ══════════════════════════════════════════════════
-// API MODAL
-// ══════════════════════════════════════════════════
-document.getElementById('bapisave').addEventListener('click',()=>{
-  const k=document.getElementById('apikey').value.trim();
-  if(!k){document.getElementById('apikey').style.borderColor='var(--danger)';return}
-  localStorage.setItem(AK,k);apimod.classList.remove('on');showToast('Clé API sauvegardée ✓');sendAI();
-});
-document.getElementById('bapicancel').addEventListener('click',()=>apimod.classList.remove('on'));
-
-// ══════════════════════════════════════════════════
-// KEYBOARD SHORTCUTS
-// ══════════════════════════════════════════════════
-document.addEventListener('keydown',e=>{
-  if((e.metaKey||e.ctrlKey)&&e.key==='o'){e.preventDefault();openDraw()}
-  if((e.metaKey||e.ctrlKey)&&e.key==='p'){e.preventDefault();document.getElementById('bprev').click()}
-  if((e.metaKey||e.ctrlKey)&&e.shiftKey&&e.key==='F'){e.preventDefault();document.getElementById('bfocus').click()}
-});
-
-// ══════════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════════
-function init(){
-  const th=localStorage.getItem('writer_theme')||'light';
-  document.documentElement.dataset.theme=th;
-  document.getElementById('theme-meta').content=th==='dark'?'#1a1917':'#f5f2eb';
-
-  if(S.files.length){openFile(S.files[0].id)}
-  else{
-    const f=createFile('Bienvenue dans Writer');
-    f.content=`# Bienvenue dans Writer\n\nCommence à écrire et le correcteur détecte automatiquement les fautes.\n\n## Correcteur temps réel\n\n- Les fautes sont **soulignées en rouge ondulé**\n- Les problèmes de style/ponctuation en **orange ondulé**\n- **Clique** sur n'importe quel mot souligné pour voir la correction\n- Choisis la suggestion ou clique "Ignorer"\n\n## IA Claude (optionnel)\n\nClique sur **IA** (ou ⌘K) pour reformuler, raccourcir, développer… Les modifications s'affichent en diff visuel avant acceptation.\n\n## Raccourcis\n\n- **⌘K** — IA\n- **⌘S** — Sauvegarder\n- **⌘P** — Prévisualisation Markdown\n- **⌘O** — Fichiers\n- **⌘⇧F** — Mode focus`;
-    saveDB();openFile(f.id);
-  }
-}
-
-if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 init();
 </script>
 </body>
