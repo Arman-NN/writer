@@ -2,12 +2,13 @@
 <html lang="fr" data-theme="light">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Writer</title>
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#f5f2eb" />
+  <meta name="theme-color" id="theme-color-meta" content="#f5f2eb" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Writer" />
   <link rel="apple-touch-icon" href="icon-192.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -28,7 +29,9 @@
       --font-body: 'Lora', Georgia, serif;
       --font-mono: 'JetBrains Mono', 'Courier New', monospace;
       --editor-width: 680px;
-      --toolbar-h: 52px;
+      --toolbar-h: 48px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
       --transition: 0.2s ease;
     }
 
@@ -50,609 +53,331 @@
       background: var(--bg);
       color: var(--text);
       transition: background var(--transition), color var(--transition);
+      overscroll-behavior: none;
     }
 
-    /* ─── LAYOUT ─── */
     #app {
       display: grid;
-      grid-template-rows: var(--toolbar-h) 1fr;
-      height: 100vh;
+      grid-template-rows: calc(var(--toolbar-h) + var(--safe-top)) 1fr;
+      height: 100dvh;
       overflow: hidden;
     }
 
     /* ─── TOOLBAR ─── */
     #toolbar {
       display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 0 16px;
+      align-items: flex-end;
+      gap: 2px;
+      padding: 0 12px 8px 12px;
+      padding-top: var(--safe-top);
       background: var(--bg2);
       border-bottom: 1px solid var(--border);
-      transition: opacity var(--transition);
       z-index: 100;
+      transition: opacity var(--transition);
     }
 
     #toolbar .doc-title {
       font-family: var(--font-mono);
-      font-size: 13px;
+      font-size: 11px;
       color: var(--text-muted);
       flex: 1;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      padding: 0 8px;
+      padding: 0 6px;
     }
 
-    .toolbar-group {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-    }
-
-    .toolbar-group + .toolbar-group {
-      border-left: 1px solid var(--border);
-      margin-left: 6px;
-      padding-left: 6px;
-    }
+    .toolbar-sep { width: 1px; height: 16px; background: var(--border); margin: 0 3px; }
 
     .btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 34px;
-      height: 34px;
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      border-radius: 6px;
-      font-size: 15px;
+      display: flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px;
+      border: none; background: transparent; color: var(--text-muted);
+      cursor: pointer; border-radius: 5px; font-size: 13px;
       transition: background var(--transition), color var(--transition);
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
     }
 
     .btn:hover { background: var(--border); color: var(--text); }
     .btn.active { background: var(--accent-light); color: var(--accent); }
 
-    .btn-text {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      padding: 0 10px;
-      width: auto;
-      letter-spacing: 0.5px;
-      font-weight: 500;
-    }
+    .btn-label { font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.5px; width: auto; padding: 0 7px; }
 
     .btn-ai {
-      background: var(--accent);
-      color: white;
-      width: auto;
-      padding: 0 12px;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      font-weight: 500;
-      letter-spacing: 0.5px;
-      gap: 5px;
+      background: var(--accent) !important; color: white !important;
+      width: auto; padding: 0 10px;
+      font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.5px;
+      gap: 4px; border-radius: 5px;
+    }
+    .btn-ai:hover { opacity: 0.85; }
+
+    .btn-wrapper { position: relative; }
+    .badge {
+      display: none; align-items: center; justify-content: center;
+      min-width: 14px; height: 14px;
+      background: var(--danger); color: white;
+      font-family: var(--font-mono); font-size: 8px; font-weight: 700;
+      border-radius: 7px; padding: 0 3px;
+      position: absolute; top: 2px; right: 2px;
     }
 
-    .btn-ai:hover { background: color-mix(in srgb, var(--accent) 85%, black); color: white; }
-    .btn-ai.loading { opacity: 0.7; pointer-events: none; }
-
-    /* ─── MAIN AREA ─── */
-    #main {
-      display: grid;
-      grid-template-columns: 1fr;
-      overflow: hidden;
-      position: relative;
-    }
-
+    /* ─── MAIN ─── */
+    #main { display: grid; grid-template-columns: 1fr; overflow: hidden; position: relative; }
     #main.split { grid-template-columns: 1fr 1fr; }
 
-    /* ─── EDITOR PANE ─── */
-    #editor-pane {
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      background: var(--bg);
-      border-right: 1px solid transparent;
-      transition: border-color var(--transition);
-    }
-
-    #main.split #editor-pane { border-right-color: var(--border); }
+    /* ─── EDITOR ─── */
+    #editor-pane { display: flex; flex-direction: column; overflow: hidden; background: var(--bg); position: relative; }
 
     #editor {
-      flex: 1;
-      width: 100%;
-      padding: 48px max(32px, calc((100% - var(--editor-width)) / 2));
-      font-family: var(--font-mono);
-      font-size: 16px;
-      line-height: 1.85;
-      color: var(--text);
-      background: transparent;
-      border: none;
-      outline: none;
-      resize: none;
+      flex: 1; width: 100%;
+      padding: 48px max(24px, calc((100% - var(--editor-width)) / 2));
+      padding-bottom: calc(60px + var(--safe-bottom));
+      font-family: var(--font-mono); font-size: 16px; line-height: 1.85;
+      color: var(--text); background: transparent;
+      border: none; outline: none; resize: none;
       caret-color: var(--accent);
-      overflow-y: auto;
-      transition: padding var(--transition);
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
     }
 
     #editor::placeholder { color: var(--text-faint); }
 
-    #editor::selection {
-      background: var(--accent-light);
-    }
-
-    /* ─── FOCUS MODE ─── */
     body.focus-mode #toolbar { opacity: 0; pointer-events: none; }
     body.focus-mode #toolbar:hover { opacity: 1; pointer-events: all; }
-    body.focus-mode #editor {
-      padding-top: 30vh;
+    body.focus-mode #editor { padding-top: 30vh; }
+    body.focus-mode #statusbar { opacity: 0.15; }
+
+    /* ─── DIFF OVERLAY ─── */
+    #diff-overlay {
+      position: absolute; inset: 0; pointer-events: none; overflow-y: auto;
+      padding: 48px max(24px, calc((100% - var(--editor-width)) / 2));
+      padding-bottom: calc(60px + var(--safe-bottom));
+      font-family: var(--font-mono); font-size: 16px; line-height: 1.85;
+      white-space: pre-wrap; word-break: break-word;
+      display: none; z-index: 10;
+    }
+    #diff-overlay.visible { display: block; }
+
+    .diff-del { text-decoration: line-through; color: var(--danger); opacity: 0.8; }
+    .diff-ins { color: var(--accent); background: var(--accent-light); border-radius: 2px; }
+    .diff-same { opacity: 0.4; }
+
+    /* ─── DIFF BAR ─── */
+    #diff-bar {
+      display: none; position: absolute;
+      bottom: calc(16px + var(--safe-bottom)); left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 24px; padding: 5px 7px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      z-index: 50; white-space: nowrap; align-items: center; gap: 6px;
+    }
+    #diff-bar.visible { display: flex; }
+
+    .diff-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); padding: 0 4px; }
+
+    .btn-accept {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+      padding: 5px 12px; background: var(--accent); color: white;
+      border: none; border-radius: 20px; cursor: pointer;
+    }
+    .btn-reject {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+      padding: 5px 12px; background: var(--bg2); color: var(--text-muted);
+      border: 1px solid var(--border); border-radius: 20px; cursor: pointer;
     }
 
-    /* ─── PREVIEW PANE ─── */
-    #preview-pane {
-      overflow-y: auto;
-      background: var(--surface);
-      display: none;
-    }
-
+    /* ─── PREVIEW ─── */
+    #preview-pane { overflow-y: auto; background: var(--surface); border-left: 1px solid var(--border); display: none; }
     #main.split #preview-pane { display: block; }
 
     #preview-content {
-      padding: 48px 48px;
-      max-width: 640px;
-      margin: 0 auto;
-      font-family: var(--font-body);
-      font-size: 17px;
-      line-height: 1.8;
-      color: var(--text);
+      padding: 48px 40px; max-width: 640px; margin: 0 auto;
+      font-family: var(--font-body); font-size: 17px; line-height: 1.8; color: var(--text);
     }
-
-    #preview-content h1, #preview-content h2, #preview-content h3 {
-      font-family: var(--font-body);
-      font-weight: 500;
-      margin: 1.5em 0 0.5em;
-      line-height: 1.3;
-    }
-    #preview-content h1 { font-size: 2em; }
-    #preview-content h2 { font-size: 1.4em; }
-    #preview-content h3 { font-size: 1.15em; }
+    #preview-content h1 { font-size: 2em; font-weight: 500; margin: 1.5em 0 .5em; }
+    #preview-content h2 { font-size: 1.4em; font-weight: 500; margin: 1.5em 0 .5em; }
+    #preview-content h3 { font-size: 1.15em; font-weight: 500; margin: 1.2em 0 .4em; }
     #preview-content p { margin: 0 0 1em; }
     #preview-content strong { font-weight: 600; }
     #preview-content em { font-style: italic; }
-    #preview-content code {
-      font-family: var(--font-mono);
-      font-size: 0.85em;
-      background: var(--bg2);
-      padding: 2px 6px;
-      border-radius: 3px;
-    }
-    #preview-content pre {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 16px;
-      overflow-x: auto;
-      margin: 1em 0;
-    }
+    #preview-content code { font-family: var(--font-mono); font-size: .85em; background: var(--bg2); padding: 2px 5px; border-radius: 3px; }
+    #preview-content pre { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin: 1em 0; overflow-x: auto; }
     #preview-content pre code { background: none; padding: 0; }
-    #preview-content blockquote {
-      border-left: 3px solid var(--accent);
-      margin: 1em 0;
-      padding: 4px 16px;
-      color: var(--text-muted);
-    }
-    #preview-content ul, #preview-content ol {
-      margin: 0 0 1em 1.5em;
-    }
+    #preview-content blockquote { border-left: 3px solid var(--accent); margin: 1em 0; padding: 4px 16px; color: var(--text-muted); }
+    #preview-content ul, #preview-content ol { margin: 0 0 1em 1.5em; }
     #preview-content li { margin-bottom: 4px; }
     #preview-content a { color: var(--accent); text-decoration: underline; }
-    #preview-content hr {
-      border: none;
-      border-top: 1px solid var(--border);
-      margin: 2em 0;
-    }
+    #preview-content hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
 
     /* ─── STATUS BAR ─── */
     #statusbar {
-      position: fixed;
-      bottom: 12px;
-      right: 16px;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-faint);
-      letter-spacing: 0.5px;
-      pointer-events: none;
-      transition: opacity var(--transition);
+      position: fixed; bottom: calc(10px + var(--safe-bottom)); right: 14px;
+      font-family: var(--font-mono); font-size: 10px; color: var(--text-faint);
+      pointer-events: none; transition: opacity var(--transition);
     }
 
-    body.focus-mode #statusbar { opacity: 0.3; }
+    /* ─── MOBILE KB ─── */
+    #mobile-kb {
+      display: none; position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--bg2); border-top: 1px solid var(--border);
+      padding: 6px 8px calc(6px + var(--safe-bottom));
+      gap: 4px; overflow-x: auto; z-index: 80;
+      scrollbar-width: none;
+    }
+    #mobile-kb::-webkit-scrollbar { display: none; }
+
+    @media (max-width: 768px) and (pointer: coarse) {
+      #mobile-kb { display: flex; }
+      #editor { padding-bottom: calc(60px + var(--safe-bottom)); }
+    }
+
+    .kb-btn {
+      flex-shrink: 0; padding: 6px 11px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+      color: var(--text); cursor: pointer; white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .kb-accent { color: var(--accent); border-color: var(--accent); background: var(--accent-light); }
 
     /* ─── FILE DRAWER ─── */
-    #file-drawer {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.4);
-      z-index: 200;
-      display: none;
-      backdrop-filter: blur(4px);
-    }
-
+    #file-drawer { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 200; display: none; backdrop-filter: blur(3px); }
     #file-drawer.open { display: flex; }
 
     #file-panel {
-      width: 300px;
-      background: var(--surface);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      animation: slideIn 0.2s ease;
+      width: min(300px, 85vw); background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; height: 100%;
+      padding-top: var(--safe-top); animation: slideIn .22s ease;
     }
+    @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
 
-    @keyframes slideIn {
-      from { transform: translateX(-100%); }
-      to { transform: translateX(0); }
-    }
+    #file-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+    #file-panel-header h3 { font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); }
+    #file-list { flex: 1; overflow-y: auto; padding: 8px; }
 
-    #file-panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 16px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    #file-panel-header h3 {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
-
-    #file-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px;
-    }
-
-    .file-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background var(--transition);
-    }
-
+    .file-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 6px; cursor: pointer; transition: background var(--transition); }
     .file-item:hover { background: var(--bg2); }
     .file-item.active { background: var(--accent-light); }
-
-    .file-item-icon { font-size: 14px; opacity: 0.6; }
-
     .file-item-info { flex: 1; min-width: 0; }
-
-    .file-item-name {
-      font-family: var(--font-mono);
-      font-size: 13px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: var(--text);
-    }
-
+    .file-item-name { font-family: var(--font-mono); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
     .file-item.active .file-item-name { color: var(--accent); }
+    .file-item-meta { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); margin-top: 2px; }
+    .file-delete { opacity: 0; border: none; background: none; color: var(--danger); cursor: pointer; font-size: 13px; padding: 3px 5px; border-radius: 4px; }
+    .file-item:hover .file-delete { opacity: .5; }
+    @media (pointer: coarse) { .file-delete { opacity: .35; } }
 
-    .file-item-meta {
-      font-size: 11px;
-      color: var(--text-faint);
-      font-family: var(--font-mono);
-      margin-top: 1px;
-    }
-
-    .file-delete {
-      opacity: 0;
-      border: none;
-      background: none;
-      color: var(--danger);
-      cursor: pointer;
-      font-size: 14px;
-      padding: 2px 4px;
-      border-radius: 4px;
-    }
-
-    .file-item:hover .file-delete { opacity: 1; }
-
-    #file-panel-footer {
-      padding: 12px;
-      border-top: 1px solid var(--border);
-    }
-
-    .btn-new-file {
-      width: 100%;
-      padding: 10px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-family: var(--font-mono);
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 0.5px;
-      cursor: pointer;
-      transition: opacity var(--transition);
-    }
-
-    .btn-new-file:hover { opacity: 0.85; }
+    #file-panel-footer { padding: 12px; border-top: 1px solid var(--border); }
+    .btn-new-file { width: 100%; padding: 10px; background: var(--accent); color: white; border: none; border-radius: 8px; font-family: var(--font-mono); font-size: 11px; font-weight: 500; cursor: pointer; }
 
     /* ─── AI PANEL ─── */
     #ai-panel {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      z-index: 150;
-      transform: translateY(100%);
-      transition: transform 0.3s ease;
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--surface); border-top: 1px solid var(--border);
+      z-index: 150; transform: translateY(100%);
+      transition: transform .28s cubic-bezier(.4,0,.2,1);
     }
-
     #ai-panel.open { transform: translateY(0); }
 
-    #ai-panel-inner {
-      max-width: 760px;
-      margin: 0 auto;
-      padding: 16px 20px;
-    }
+    #ai-panel-inner { max-width: 720px; margin: 0 auto; padding: 14px 16px calc(14px + var(--safe-bottom)); }
 
-    #ai-panel-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
+    #ai-panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    #ai-panel-header span { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); font-weight: 500; }
+    #ai-panel-header .close-ai { margin-left: auto; }
 
-    #ai-panel-header span {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--accent);
-      font-weight: 500;
+    #ai-modes { display: flex; gap: 4px; margin-bottom: 10px; flex-wrap: wrap; }
+    .ai-mode-btn {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: .3px;
+      padding: 4px 10px; border: 1px solid var(--border); border-radius: 20px;
+      background: transparent; color: var(--text-muted); cursor: pointer;
+      transition: all var(--transition); -webkit-tap-highlight-color: transparent;
     }
+    .ai-mode-btn.selected { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
 
-    #ai-panel-header .close-ai {
-      margin-left: auto;
-    }
-
-    #ai-input-row {
-      display: flex;
-      gap: 8px;
-    }
-
+    #ai-input-row { display: flex; gap: 8px; }
     #ai-prompt {
-      flex: 1;
-      font-family: var(--font-mono);
-      font-size: 13px;
-      padding: 10px 14px;
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      outline: none;
+      flex: 1; font-family: var(--font-mono); font-size: 12px;
+      padding: 8px 12px; background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); outline: none;
       transition: border-color var(--transition);
     }
-
     #ai-prompt:focus { border-color: var(--accent); }
 
-    #ai-output {
-      margin-top: 12px;
-      font-family: var(--font-body);
-      font-size: 15px;
-      line-height: 1.7;
-      color: var(--text);
-      min-height: 0;
-      max-height: 200px;
-      overflow-y: auto;
-      padding: 0 2px;
-      white-space: pre-wrap;
-    }
+    #ai-status { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-top: 8px; min-height: 16px; display: flex; align-items: center; gap: 6px; }
 
-    #ai-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-    }
+    .spinner { width: 10px; height: 10px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    .btn-insert {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      padding: 6px 12px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 500;
-      letter-spacing: 0.3px;
-    }
-
-    .btn-discard {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      padding: 6px 12px;
-      background: var(--bg2);
-      color: var(--text-muted);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    /* ─── API KEY MODAL ─── */
-    #api-modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      backdrop-filter: blur(6px);
-      z-index: 300;
-      display: none;
-      align-items: center;
-      justify-content: center;
-    }
-
+    /* ─── API MODAL ─── */
+    #api-modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(6px); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; }
     #api-modal.open { display: flex; }
-
-    #api-modal-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 32px;
-      max-width: 420px;
-      width: calc(100% - 32px);
-      animation: popIn 0.2s ease;
-    }
-
-    @keyframes popIn {
-      from { transform: scale(0.95); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-
-    #api-modal-box h2 {
-      font-family: var(--font-body);
-      font-size: 20px;
-      font-weight: 500;
-      margin-bottom: 8px;
-    }
-
-    #api-modal-box p {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 20px;
-      line-height: 1.6;
-      font-family: var(--font-mono);
-    }
-
-    #api-key-input {
-      width: 100%;
-      font-family: var(--font-mono);
-      font-size: 13px;
-      padding: 10px 14px;
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      outline: none;
-      margin-bottom: 12px;
-      letter-spacing: 0.5px;
-    }
-
+    #api-modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 26px 22px; width: 100%; max-width: 400px; animation: popIn .2s ease; }
+    @keyframes popIn { from { transform: scale(.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    #api-modal-box h2 { font-family: var(--font-body); font-size: 18px; font-weight: 500; margin-bottom: 6px; }
+    #api-modal-box p { font-size: 11px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.6; font-family: var(--font-mono); }
+    #api-modal-box a { color: var(--accent); }
+    #api-key-input { width: 100%; font-family: var(--font-mono); font-size: 12px; padding: 9px 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); outline: none; margin-bottom: 12px; }
     #api-key-input:focus { border-color: var(--accent); }
-
     #api-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
     /* ─── TOAST ─── */
     #toast {
-      position: fixed;
-      bottom: 40px;
-      left: 50%;
-      transform: translateX(-50%) translateY(10px);
-      background: var(--text);
-      color: var(--bg);
-      font-family: var(--font-mono);
-      font-size: 12px;
-      padding: 8px 16px;
-      border-radius: 20px;
-      opacity: 0;
-      transition: opacity 0.2s, transform 0.2s;
-      pointer-events: none;
-      white-space: nowrap;
+      position: fixed; bottom: calc(48px + var(--safe-bottom)); left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      background: var(--text); color: var(--bg);
+      font-family: var(--font-mono); font-size: 10px;
+      padding: 6px 13px; border-radius: 20px;
+      opacity: 0; transition: opacity .2s, transform .2s;
+      pointer-events: none; white-space: nowrap; z-index: 400;
     }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    #toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    /* ─── CURSOR BLINK ─── */
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
-
-    .ai-cursor {
-      display: inline-block;
-      width: 2px;
-      height: 1em;
-      background: var(--accent);
-      vertical-align: text-bottom;
-      margin-left: 2px;
-      animation: blink 0.8s infinite;
-    }
-
-    /* ─── SCROLLBAR ─── */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
-
-    /* ─── MOBILE ─── */
-    @media (max-width: 600px) {
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 640px) {
       #main.split { grid-template-columns: 1fr; }
       #main.split #preview-pane { display: none; }
-      #editor { padding: 32px 20px; }
-      #file-panel { width: 85vw; }
     }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   </style>
 </head>
 <body>
-
 <div id="app">
+
   <!-- TOOLBAR -->
   <div id="toolbar">
-    <div class="toolbar-group">
-      <button class="btn" id="btn-files" title="Fichiers (⌘O)">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-          <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-        </svg>
+    <div style="display:flex;align-items:center;gap:2px">
+      <button class="btn" id="btn-files" title="Documents (⌘O)">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
     </div>
 
-    <span class="doc-title" id="doc-title">sans titre.md</span>
+    <span class="doc-title" id="doc-title">sans-titre.md</span>
 
-    <div class="toolbar-group">
-      <button class="btn btn-text" id="btn-preview" title="Prévisualisation (⌘P)">MD</button>
+    <div style="display:flex;align-items:center;gap:2px">
+      <div class="btn-wrapper">
+        <button class="btn btn-label" id="btn-stylecheck" title="Style Check — barre les clichés et mots inutiles">SC</button>
+        <span class="badge" id="sc-badge">0</span>
+      </div>
+      <div class="toolbar-sep"></div>
+      <button class="btn btn-label" id="btn-preview" title="Prévisualisation Markdown (⌘P)">MD</button>
       <button class="btn" id="btn-focus" title="Mode focus (⌘⇧F)">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-        </svg>
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
       </button>
       <button class="btn" id="btn-theme" title="Thème">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-        </svg>
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
       </button>
-    </div>
-
-    <div class="toolbar-group">
+      <div class="toolbar-sep"></div>
       <button class="btn" id="btn-save" title="Sauvegarder (⌘S)">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-          <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
-        </svg>
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
       </button>
       <button class="btn" id="btn-export" title="Exporter .md">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       </button>
-      <button class="btn btn-ai" id="btn-ai" title="IA (⌘K)">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2L13.8 8.2L20 10L13.8 11.8L12 18L10.2 11.8L4 10L10.2 8.2Z"/>
-        </svg>
+      <div class="toolbar-sep"></div>
+      <button class="btn btn-ai" id="btn-ai" title="Assistant IA (⌘K)">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L13.8 8.2L20 10L13.8 11.8L12 18L10.2 11.8L4 10L10.2 8.2Z"/></svg>
         IA
       </button>
     </div>
@@ -661,7 +386,13 @@
   <!-- MAIN -->
   <div id="main">
     <div id="editor-pane">
-      <textarea id="editor" placeholder="Commencez à écrire..." spellcheck="true"></textarea>
+      <textarea id="editor" placeholder="Commencez à écrire…" spellcheck="true" autocorrect="on" autocapitalize="sentences"></textarea>
+      <div id="diff-overlay"></div>
+      <div id="diff-bar">
+        <span class="diff-label">✦ Modifications IA</span>
+        <button class="btn-accept" id="btn-accept">Accepter</button>
+        <button class="btn-reject" id="btn-reject">Annuler</button>
+      </div>
     </div>
     <div id="preview-pane">
       <div id="preview-content"></div>
@@ -669,11 +400,25 @@
   </div>
 </div>
 
-<!-- STATUS BAR -->
+<!-- STATUS -->
 <div id="statusbar"><span id="word-count">0 mots</span></div>
 
+<!-- MOBILE KEYBOARD -->
+<div id="mobile-kb">
+  <button class="kb-btn" data-insert="**" data-wrap="true"><b>B</b></button>
+  <button class="kb-btn" data-insert="*" data-wrap="true"><i>I</i></button>
+  <button class="kb-btn" data-insert="# ">H1</button>
+  <button class="kb-btn" data-insert="## ">H2</button>
+  <button class="kb-btn" data-insert="### ">H3</button>
+  <button class="kb-btn" data-insert="- ">— Liste</button>
+  <button class="kb-btn" data-insert="> ">❝</button>
+  <button class="kb-btn" data-insert="`" data-wrap="true">` `</button>
+  <button class="kb-btn" data-insert="---&#10;">―</button>
+  <button class="kb-btn kb-accent" id="mobile-ai-btn">✦ IA</button>
+</div>
+
 <!-- FILE DRAWER -->
-<div id="file-drawer" id="file-drawer">
+<div id="file-drawer">
   <div id="file-panel">
     <div id="file-panel-header">
       <h3>Documents</h3>
@@ -691,57 +436,63 @@
 <div id="ai-panel">
   <div id="ai-panel-inner">
     <div id="ai-panel-header">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--accent)">
-        <path d="M12 2L13.8 8.2L20 10L13.8 11.8L12 18L10.2 11.8L4 10L10.2 8.2Z"/>
-      </svg>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="var(--accent)"><path d="M12 2L13.8 8.2L20 10L13.8 11.8L12 18L10.2 11.8L4 10L10.2 8.2Z"/></svg>
       <span>Assistant IA</span>
       <button class="btn close-ai" id="btn-close-ai">✕</button>
     </div>
+    <div id="ai-modes">
+      <button class="ai-mode-btn selected" data-mode="correct">✓ Corriger</button>
+      <button class="ai-mode-btn" data-mode="rephrase">↺ Reformuler</button>
+      <button class="ai-mode-btn" data-mode="shorten">↙ Raccourcir</button>
+      <button class="ai-mode-btn" data-mode="expand">↗ Développer</button>
+      <button class="ai-mode-btn" data-mode="formal">◈ Formaliser</button>
+      <button class="ai-mode-btn" data-mode="custom">… Personnalisé</button>
+    </div>
     <div id="ai-input-row">
-      <input id="ai-prompt" type="text" placeholder="Ex: Continue ce texte, améliore ce paragraphe, écris une intro..." />
+      <input id="ai-prompt" type="text" placeholder="Sélectionne du texte, ou laisse vide pour tout le document…" />
       <button class="btn btn-ai" id="btn-ai-send">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-        </svg>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
     </div>
-    <div id="ai-output" style="display:none"></div>
-    <div id="ai-actions" style="display:none">
-      <button class="btn-insert" id="btn-insert">↓ Insérer dans le texte</button>
-      <button class="btn-discard" id="btn-discard">Ignorer</button>
-    </div>
+    <div id="ai-status"></div>
   </div>
 </div>
 
-<!-- API KEY MODAL -->
+<!-- API MODAL -->
 <div id="api-modal">
   <div id="api-modal-box">
-    <h2>Clé API Anthropic</h2>
-    <p>Pour utiliser l'IA, entrez votre clé API Claude.<br>Elle est stockée uniquement dans votre navigateur.</p>
-    <input id="api-key-input" type="password" placeholder="sk-ant-..." />
+    <h2>Clé API Claude</h2>
+    <p>Entrez votre clé API Anthropic pour activer l'IA.<br>
+    Stockée uniquement dans votre navigateur.<br>
+    → <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
+    <input id="api-key-input" type="password" placeholder="sk-ant-api03-…" autocomplete="off" />
     <div id="api-modal-actions">
-      <button class="btn-discard" id="btn-modal-cancel">Annuler</button>
-      <button class="btn-insert" id="btn-modal-save">Sauvegarder</button>
+      <button class="btn-reject" id="btn-modal-cancel">Annuler</button>
+      <button class="btn-accept" id="btn-modal-save">Sauvegarder</button>
     </div>
   </div>
 </div>
 
-<!-- TOAST -->
 <div id="toast"></div>
 
 <script>
-// ─── STATE ───────────────────────────────────────────
-const DB_KEY = 'writer_files';
-const API_KEY_KEY = 'writer_api_key';
+// ═══ STATE ═══════════════════════════════════
+const DB_KEY = 'writer_v2';
+const APIKEY_KEY = 'writer_api_key';
+
 let state = {
-  files: JSON.parse(localStorage.getItem(DB_KEY) || '[]'),
+  files: [],
   currentId: null,
   focusMode: false,
   previewMode: false,
-  aiOutput: '',
+  scOn: false,
+  aiMode: 'correct',
+  diff: null, // {original, revised}
 };
 
-// ─── ELEMENTS ─────────────────────────────────────────
+try { state.files = JSON.parse(localStorage.getItem(DB_KEY) || '[]'); } catch(e) {}
+
+// ═══ ELEMENTS ════════════════════════════════
 const editor = document.getElementById('editor');
 const previewContent = document.getElementById('preview-content');
 const main = document.getElementById('main');
@@ -750,450 +501,413 @@ const wordCount = document.getElementById('word-count');
 const fileDrawer = document.getElementById('file-drawer');
 const fileList = document.getElementById('file-list');
 const aiPanel = document.getElementById('ai-panel');
-const aiOutput = document.getElementById('ai-output');
 const aiPrompt = document.getElementById('ai-prompt');
-const aiActions = document.getElementById('ai-actions');
+const aiStatus = document.getElementById('ai-status');
 const apiModal = document.getElementById('api-modal');
 const toast = document.getElementById('toast');
+const diffOverlay = document.getElementById('diff-overlay');
+const diffBar = document.getElementById('diff-bar');
+const scBadge = document.getElementById('sc-badge');
 
-// ─── UTILS ────────────────────────────────────────────
-function showToast(msg, duration = 2000) {
-  toast.textContent = msg;
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), duration);
+// ═══ UTILS ═══════════════════════════════════
+let _toast;
+function showToast(m, d=2200) {
+  clearTimeout(_toast); toast.textContent = m; toast.classList.add('show');
+  _toast = setTimeout(() => toast.classList.remove('show'), d);
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function wc(t) { return t.trim() ? t.trim().split(/\s+/).length : 0; }
+function fd(ts) { return new Date(ts).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ═══ FILES ═══════════════════════════════════
+function saveDB() { localStorage.setItem(DB_KEY, JSON.stringify(state.files)); }
+
+function createFile(name='Sans titre') {
+  const f = {id:uid(), name, content:'', createdAt:Date.now(), updatedAt:Date.now()};
+  state.files.unshift(f); saveDB(); return f;
 }
 
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-}
-
-function countWords(text) {
-  return text.trim() ? text.trim().split(/\s+/).length : 0;
-}
-
-function formatDate(ts) {
-  const d = new Date(ts);
-  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-}
-
-// ─── FILES ────────────────────────────────────────────
-function saveFiles() {
-  localStorage.setItem(DB_KEY, JSON.stringify(state.files));
-}
-
-function createFile(name = 'Sans titre') {
-  const file = {
-    id: generateId(),
-    name: name,
-    content: '',
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  };
-  state.files.unshift(file);
-  saveFiles();
-  return file;
-}
-
-function getCurrentFile() {
-  return state.files.find(f => f.id === state.currentId);
-}
+function getCurrent() { return state.files.find(f=>f.id===state.currentId); }
 
 function openFile(id) {
-  const file = state.files.find(f => f.id === id);
-  if (!file) return;
+  hideDiff();
+  const f = state.files.find(f=>f.id===id); if(!f) return;
   state.currentId = id;
-  editor.value = file.content;
-  docTitle.textContent = file.name + '.md';
-  updateWordCount();
-  updatePreview();
-  renderFileList();
+  editor.value = f.content;
+  docTitle.textContent = f.name + '.md';
+  updateWC();
+  if(state.previewMode) updatePreview();
+  if(state.scOn) runSC();
+  renderFiles();
   closeDrawer();
+  editor.focus();
 }
 
-function saveCurrentFile() {
-  const file = getCurrentFile();
-  if (!file) return;
-  file.content = editor.value;
-  file.updatedAt = Date.now();
-  // Auto-name from first line
-  const firstLine = editor.value.split('\n')[0].replace(/^#+\s*/, '').trim();
-  if (firstLine) file.name = firstLine.slice(0, 40);
-  docTitle.textContent = file.name + '.md';
-  saveFiles();
-  renderFileList();
-  showToast('Sauvegardé ✓');
+function saveFile(quiet=false) {
+  const f = getCurrent(); if(!f) return;
+  f.content = editor.value; f.updatedAt = Date.now();
+  const line = editor.value.split('\n')[0].replace(/^#+\s*/,'').trim();
+  if(line) f.name = line.slice(0,50);
+  docTitle.textContent = f.name + '.md';
+  saveDB(); renderFiles();
+  if(!quiet) showToast('Sauvegardé ✓');
 }
 
-function deleteFile(id) {
-  state.files = state.files.filter(f => f.id !== id);
-  saveFiles();
-  if (state.currentId === id) {
-    state.currentId = null;
-    editor.value = '';
-    docTitle.textContent = 'sans titre.md';
-    if (state.files.length > 0) openFile(state.files[0].id);
+function delFile(id) {
+  if(!confirm('Supprimer ce document ?')) return;
+  state.files = state.files.filter(f=>f.id!==id); saveDB();
+  if(state.currentId===id) {
+    state.currentId=null; editor.value=''; docTitle.textContent='sans-titre.md';
+    if(state.files.length>0) openFile(state.files[0].id);
   }
-  renderFileList();
+  renderFiles();
 }
 
-function renderFileList() {
-  fileList.innerHTML = '';
-  if (state.files.length === 0) {
-    fileList.innerHTML = `<div style="padding:20px;text-align:center;font-family:var(--font-mono);font-size:12px;color:var(--text-faint)">Aucun document</div>`;
+function renderFiles() {
+  if(state.files.length===0) {
+    fileList.innerHTML=`<div style="padding:20px;text-align:center;font-family:var(--font-mono);font-size:10px;color:var(--text-faint)">Aucun document</div>`;
     return;
   }
-  state.files.forEach(file => {
-    const div = document.createElement('div');
-    div.className = 'file-item' + (file.id === state.currentId ? ' active' : '');
-    const preview = file.content.replace(/^#+\s*/gm, '').split('\n').filter(Boolean)[1] || '';
-    div.innerHTML = `
-      <div class="file-item-icon">◈</div>
-      <div class="file-item-info">
-        <div class="file-item-name">${file.name}</div>
-        <div class="file-item-meta">${formatDate(file.updatedAt)} · ${countWords(file.content)} mots</div>
-      </div>
-      <button class="file-delete" data-id="${file.id}" title="Supprimer">✕</button>
-    `;
-    div.addEventListener('click', (e) => {
-      if (e.target.classList.contains('file-delete')) return;
-      openFile(file.id);
+  fileList.innerHTML='';
+  state.files.forEach(f=>{
+    const d=document.createElement('div');
+    d.className='file-item'+(f.id===state.currentId?' active':'');
+    d.innerHTML=`<div class="file-item-info"><div class="file-item-name">${esc(f.name)}</div><div class="file-item-meta">${fd(f.updatedAt)} · ${wc(f.content)} mots</div></div><button class="file-delete">✕</button>`;
+    d.addEventListener('click',e=>{
+      if(e.target.classList.contains('file-delete')){delFile(f.id);return;}
+      openFile(f.id);
     });
-    div.querySelector('.file-delete').addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (confirm(`Supprimer "${file.name}" ?`)) deleteFile(file.id);
-    });
-    fileList.appendChild(div);
+    fileList.appendChild(d);
   });
 }
 
-// ─── MARKDOWN PARSER (simple) ─────────────────────────
-function parseMarkdown(md) {
-  let html = md
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/^---+$/gm, '<hr>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/^\> (.+)$/gm, '<blockquote>$1</blockquote>')
-    .replace(/^\- (.+)$/gm, '<li>$1</li>')
-    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>');
-
-  // Wrap li in ul
-  html = html.replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`);
-
-  // Paragraphs
-  html = html.split('\n\n').map(block => {
-    if (/^<(h[1-3]|ul|ol|blockquote|hr|pre)/.test(block.trim())) return block;
-    const trimmed = block.trim();
-    if (!trimmed) return '';
-    return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
+// ═══ MARKDOWN ════════════════════════════════
+function md2html(md) {
+  let h = md.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/^---+$/gm,'<hr>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^\> (.+)$/gm,'<blockquote>$1</blockquote>')
+    .replace(/^\- (.+)$/gm,'<li>$1</li>').replace(/^\d+\. (.+)$/gm,'<li>$1</li>')
+    .replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2" target="_blank">$1</a>');
+  h = h.replace(/(<li>[^]*?<\/li>\n?)+/g, m=>`<ul>${m}</ul>`);
+  h = h.split('\n\n').map(b=>{
+    const t=b.trim(); if(!t) return '';
+    if(/^<(h[1-3]|ul|ol|blockquote|hr|pre)/.test(t)) return t;
+    return `<p>${t.replace(/\n/g,'<br>')}</p>`;
   }).join('\n');
-
-  return html;
+  return h;
 }
 
-function updatePreview() {
-  previewContent.innerHTML = parseMarkdown(editor.value);
+function updatePreview() { previewContent.innerHTML = md2html(editor.value); }
+function updateWC() { const w=wc(editor.value); wordCount.textContent=`${w} mot${w!==1?'s':''}`; }
+
+// ═══ STYLE CHECK ════════════════════════════
+// Patterns de mots/expressions inutiles (inspiré iA Writer Style Check)
+const SC_PATTERNS = [
+  /\b(très|vraiment|totalement|absolument|complètement|extrêmement|particulièrement|assez|plutôt|tellement|franchement|honnêtement|clairement|évidemment|certainement|probablement|peut-être|surtout|notamment|effectivement|littéralement|basiquement)\b/gi,
+  /\b(en termes de|au niveau de|dans le cadre de|il est à noter que|il convient de noter|il faut souligner que|on peut dire que|il est important de|dans un premier temps|dans un second temps|en conclusion|pour conclure|en résumé|au final|en fin de compte|à l'heure actuelle|de nos jours)\b/gi,
+  /\b(chose|truc|machin|quelque chose de|un peu de|beaucoup de|plusieurs|divers|différents|certains|certaines|nombreux|nombreuses)\b/gi,
+];
+
+function runSC() {
+  const text = editor.value;
+  const found = [];
+  SC_PATTERNS.forEach(pat => {
+    const re = new RegExp(pat.source, pat.flags.includes('g') ? pat.flags : pat.flags+'g');
+    let m;
+    while((m=re.exec(text))!==null) found.push({start:m.index, end:m.index+m[0].length});
+  });
+  found.sort((a,b)=>a.start-b.start);
+  const uniq = []; let last=-1;
+  found.forEach(f=>{ if(f.start>=last){uniq.push(f); last=f.end;} });
+  if(uniq.length>0) {
+    scBadge.textContent = uniq.length;
+    scBadge.style.display = 'flex';
+  } else {
+    scBadge.style.display = 'none';
+  }
 }
 
-function updateWordCount() {
-  const words = countWords(editor.value);
-  const chars = editor.value.length;
-  wordCount.textContent = `${words} mot${words !== 1 ? 's' : ''} · ${chars} car.`;
+function clearSC() { scBadge.style.display='none'; }
+
+// ═══ DIFF ENGINE ════════════════════════════
+function computeDiff(a, b) {
+  const tok = s => s.match(/\S+|\s+/g) || [];
+  const A = tok(a), B = tok(b);
+  const m=A.length, n=B.length;
+  const dp = Array.from({length:m+1},()=>new Array(n+1).fill(0));
+  for(let i=m-1;i>=0;i--)
+    for(let j=n-1;j>=0;j--)
+      dp[i][j] = A[i]===B[j] ? 1+dp[i+1][j+1] : Math.max(dp[i+1][j],dp[i][j+1]);
+  const diff=[]; let i=0,j=0;
+  while(i<m||j<n) {
+    if(i<m&&j<n&&A[i]===B[j]){diff.push({t:'same',v:A[i]});i++;j++;}
+    else if(j<n&&(i>=m||dp[i][j+1]>=dp[i+1][j])){diff.push({t:'ins',v:B[j]});j++;}
+    else{diff.push({t:'del',v:A[i]});i++;}
+  }
+  return diff;
 }
 
-// ─── UI CONTROLS ──────────────────────────────────────
-function openDrawer() {
-  renderFileList();
-  fileDrawer.classList.add('open');
+function renderDiff(diff) {
+  return diff.map(d=>{
+    const v=esc(d.v);
+    if(d.t==='same') return `<span class="diff-same">${v}</span>`;
+    if(d.t==='ins') return `<span class="diff-ins">${v}</span>`;
+    return `<span class="diff-del">${v}</span>`;
+  }).join('');
 }
 
-function closeDrawer() {
-  fileDrawer.classList.remove('open');
+function showDiff(original, revised) {
+  state.diff = {original, revised};
+  diffOverlay.innerHTML = renderDiff(computeDiff(original, revised));
+  editor.style.color = 'transparent';
+  editor.style.caretColor = 'transparent';
+  diffOverlay.classList.add('visible');
+  diffBar.classList.add('visible');
 }
 
-document.getElementById('btn-files').addEventListener('click', openDrawer);
-document.getElementById('btn-close-drawer').addEventListener('click', closeDrawer);
-document.getElementById('drawer-overlay').addEventListener('click', closeDrawer);
-
-document.getElementById('btn-new-file').addEventListener('click', () => {
-  const file = createFile('Sans titre');
-  openFile(file.id);
-  showToast('Nouveau document créé');
-});
-
-document.getElementById('btn-preview').addEventListener('click', () => {
-  state.previewMode = !state.previewMode;
-  main.classList.toggle('split', state.previewMode);
-  document.getElementById('btn-preview').classList.toggle('active', state.previewMode);
-  if (state.previewMode) updatePreview();
-});
-
-document.getElementById('btn-focus').addEventListener('click', () => {
-  state.focusMode = !state.focusMode;
-  document.body.classList.toggle('focus-mode', state.focusMode);
-  document.getElementById('btn-focus').classList.toggle('active', state.focusMode);
-  if (state.focusMode) editor.focus();
-});
-
-document.getElementById('btn-theme').addEventListener('click', () => {
-  const isDark = document.documentElement.dataset.theme === 'dark';
-  document.documentElement.dataset.theme = isDark ? 'light' : 'dark';
-  localStorage.setItem('writer_theme', isDark ? 'light' : 'dark');
-});
-
-document.getElementById('btn-save').addEventListener('click', () => {
-  if (!getCurrentFile()) {
-    const file = createFile('Sans titre');
-    state.currentId = file.id;
-  }
-  saveCurrentFile();
-});
-
-document.getElementById('btn-export').addEventListener('click', () => {
-  const content = editor.value;
-  const file = getCurrentFile();
-  const name = (file?.name || 'document') + '.md';
-  const blob = new Blob([content], { type: 'text/markdown' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  a.click();
-  showToast('Fichier exporté ✓');
-});
-
-// ─── EDITOR EVENTS ────────────────────────────────────
-let autoSaveTimer;
-editor.addEventListener('input', () => {
-  updateWordCount();
-  if (state.previewMode) updatePreview();
-  clearTimeout(autoSaveTimer);
-  autoSaveTimer = setTimeout(() => {
-    if (getCurrentFile()) saveCurrentFile();
-  }, 1500);
-});
-
-editor.addEventListener('keydown', (e) => {
-  // Tab → indent
-  if (e.key === 'Tab') {
-    e.preventDefault();
-    const start = editor.selectionStart;
-    editor.value = editor.value.slice(0, start) + '  ' + editor.value.slice(editor.selectionEnd);
-    editor.selectionStart = editor.selectionEnd = start + 2;
-  }
-  // Cmd+S → save
-  if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-    e.preventDefault();
-    if (!getCurrentFile()) {
-      const file = createFile('Sans titre');
-      state.currentId = file.id;
-    }
-    saveCurrentFile();
-  }
-  // Cmd+K → AI
-  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-    e.preventDefault();
-    openAI();
-  }
-  // Escape → exit focus
-  if (e.key === 'Escape' && state.focusMode) {
-    state.focusMode = false;
-    document.body.classList.remove('focus-mode');
-    document.getElementById('btn-focus').classList.remove('active');
-  }
-});
-
-// ─── AI ───────────────────────────────────────────────
-function openAI() {
-  aiPanel.classList.add('open');
-  aiOutput.style.display = 'none';
-  aiActions.style.display = 'none';
-  state.aiOutput = '';
-  aiPrompt.value = '';
-  aiPrompt.focus();
+function hideDiff() {
+  state.diff = null;
+  editor.style.color = '';
+  editor.style.caretColor = '';
+  diffOverlay.classList.remove('visible');
+  diffBar.classList.remove('visible');
+  diffOverlay.innerHTML = '';
 }
 
-document.getElementById('btn-ai').addEventListener('click', openAI);
-document.getElementById('btn-close-ai').addEventListener('click', () => aiPanel.classList.remove('open'));
+document.getElementById('btn-accept').addEventListener('click',()=>{
+  if(!state.diff) return;
+  editor.value = state.diff.revised;
+  hideDiff(); updateWC();
+  if(state.previewMode) updatePreview();
+  if(!getCurrent()){const f=createFile();state.currentId=f.id;}
+  saveFile(true); showToast('Modifications acceptées ✓');
+});
 
-aiPrompt.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendAI();
+document.getElementById('btn-reject').addEventListener('click',()=>{
+  hideDiff(); showToast('Annulé');
+});
+
+// ═══ UI ACTIONS ══════════════════════════════
+const openDrawer = ()=>{ renderFiles(); fileDrawer.classList.add('open'); };
+const closeDrawer = ()=>fileDrawer.classList.remove('open');
+
+document.getElementById('btn-files').addEventListener('click',openDrawer);
+document.getElementById('btn-close-drawer').addEventListener('click',closeDrawer);
+document.getElementById('drawer-overlay').addEventListener('click',closeDrawer);
+document.getElementById('btn-new-file').addEventListener('click',()=>{
+  const f=createFile(); openFile(f.id); showToast('Nouveau document');
+});
+
+document.getElementById('btn-preview').addEventListener('click',()=>{
+  state.previewMode=!state.previewMode;
+  main.classList.toggle('split',state.previewMode);
+  document.getElementById('btn-preview').classList.toggle('active',state.previewMode);
+  if(state.previewMode) updatePreview();
+});
+
+document.getElementById('btn-focus').addEventListener('click',()=>{
+  state.focusMode=!state.focusMode;
+  document.body.classList.toggle('focus-mode',state.focusMode);
+  document.getElementById('btn-focus').classList.toggle('active',state.focusMode);
+  if(state.focusMode) editor.focus();
+});
+
+document.getElementById('btn-theme').addEventListener('click',()=>{
+  const dark = document.documentElement.dataset.theme==='dark';
+  const next = dark?'light':'dark';
+  document.documentElement.dataset.theme=next;
+  document.getElementById('theme-color-meta').content = next==='dark'?'#1a1917':'#f5f2eb';
+  localStorage.setItem('writer_theme',next);
+});
+
+document.getElementById('btn-save').addEventListener('click',()=>{
+  if(!getCurrent()){const f=createFile();state.currentId=f.id;}
+  saveFile();
+});
+
+document.getElementById('btn-export').addEventListener('click',()=>{
+  const name=(getCurrent()?.name||'document')+'.md';
+  const blob=new Blob([editor.value],{type:'text/markdown'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+  showToast('Exporté ✓');
+});
+
+document.getElementById('btn-stylecheck').addEventListener('click',()=>{
+  state.scOn=!state.scOn;
+  document.getElementById('btn-stylecheck').classList.toggle('active',state.scOn);
+  if(state.scOn) runSC(); else clearSC();
+  showToast(state.scOn ? 'Style Check activé — les mots inutiles sont comptés' : 'Style Check désactivé');
+});
+
+// ═══ EDITOR EVENTS ═══════════════════════════
+let _autosave;
+editor.addEventListener('input',()=>{
+  updateWC();
+  if(state.previewMode) updatePreview();
+  if(state.scOn) runSC();
+  clearTimeout(_autosave);
+  _autosave=setTimeout(()=>{ if(getCurrent()) saveFile(true); },1800);
+});
+
+editor.addEventListener('keydown',e=>{
+  if(e.key==='Tab'){e.preventDefault();const s=editor.selectionStart;editor.value=editor.value.slice(0,s)+'  '+editor.value.slice(editor.selectionEnd);editor.selectionStart=editor.selectionEnd=s+2;}
+  if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();if(!getCurrent()){const f=createFile();state.currentId=f.id;}saveFile();}
+  if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openAI();}
+  if(e.key==='Escape'){
+    if(state.diff){hideDiff();return;}
+    if(aiPanel.classList.contains('open')){aiPanel.classList.remove('open');return;}
+    if(state.focusMode){state.focusMode=false;document.body.classList.remove('focus-mode');document.getElementById('btn-focus').classList.remove('active');}
   }
 });
 
-document.getElementById('btn-ai-send').addEventListener('click', sendAI);
+editor.addEventListener('scroll',()=>{ diffOverlay.scrollTop=editor.scrollTop; });
 
-async function sendAI() {
-  const apiKey = localStorage.getItem(API_KEY_KEY);
-  if (!apiKey) {
-    apiModal.classList.add('open');
-    return;
-  }
-
-  const prompt = aiPrompt.value.trim();
-  if (!prompt) return;
-
-  const context = editor.value.slice(-2000); // derniers 2000 chars comme contexte
-  const systemPrompt = `Tu es un assistant d'écriture expert. L'utilisateur travaille sur un document. 
-Réponds de manière concise et directement utilisable dans le texte.
-Ne répète pas les instructions, donne uniquement le contenu demandé.
-Réponds dans la même langue que le document (prioritairement français si ambigu).`;
-
-  const userMessage = context
-    ? `Voici le contexte du document actuel:\n---\n${context}\n---\n\nInstruction: ${prompt}`
-    : prompt;
-
-  aiOutput.style.display = 'block';
-  aiActions.style.display = 'none';
-  aiOutput.innerHTML = '<span class="ai-cursor"></span>';
-  state.aiOutput = '';
-
-  const sendBtn = document.getElementById('btn-ai-send');
-  sendBtn.style.opacity = '0.5';
-  sendBtn.style.pointerEvents = 'none';
-
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 800,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userMessage }],
-        stream: true,
-      }),
-    });
-
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error?.message || 'Erreur API');
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
-
-      for (const line of lines) {
-        const data = line.slice(6);
-        if (data === '[DONE]') continue;
-        try {
-          const json = JSON.parse(data);
-          if (json.type === 'content_block_delta' && json.delta?.text) {
-            state.aiOutput += json.delta.text;
-            aiOutput.innerHTML = escapeHtml(state.aiOutput) + '<span class="ai-cursor"></span>';
-            aiOutput.scrollTop = aiOutput.scrollHeight;
-          }
-        } catch (_) {}
+// ═══ MOBILE KB ═══════════════════════════════
+document.querySelectorAll('.kb-btn[data-insert]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const ins=btn.dataset.insert.replace('&#10;','\n');
+    const wrap=btn.dataset.wrap==='true';
+    const s=editor.selectionStart, e2=editor.selectionEnd, sel=editor.value.slice(s,e2);
+    if(wrap&&sel){
+      editor.value=editor.value.slice(0,s)+ins+sel+ins+editor.value.slice(e2);
+      editor.selectionStart=s+ins.length; editor.selectionEnd=s+ins.length+sel.length;
+    } else {
+      const lstart=editor.value.lastIndexOf('\n',s-1)+1;
+      if(!wrap&&(ins.startsWith('#')||ins.startsWith('-')||ins.startsWith('>'))){
+        editor.value=editor.value.slice(0,lstart)+ins+editor.value.slice(lstart);
+        editor.selectionStart=editor.selectionEnd=lstart+ins.length;
+      } else {
+        editor.value=editor.value.slice(0,s)+ins+editor.value.slice(e2);
+        editor.selectionStart=editor.selectionEnd=s+ins.length;
       }
     }
+    editor.focus(); editor.dispatchEvent(new Event('input'));
+  });
+});
 
-    aiOutput.innerHTML = escapeHtml(state.aiOutput);
-    aiActions.style.display = 'flex';
+document.getElementById('mobile-ai-btn').addEventListener('click',openAI);
 
-  } catch (err) {
-    aiOutput.innerHTML = `<span style="color:var(--danger);font-family:var(--font-mono);font-size:12px">⚠ ${err.message}</span>`;
-    if (err.message.includes('API key') || err.message.includes('auth')) {
-      apiModal.classList.add('open');
+// ═══ AI ══════════════════════════════════════
+const AI_PROMPTS = {
+  correct: 'Corrige UNIQUEMENT les fautes d\'orthographe, de grammaire et de ponctuation. Ne modifie pas le style ni les choix de mots de l\'auteur. Retourne uniquement le texte corrigé.',
+  rephrase: 'Reformule ce texte pour le rendre plus clair et fluide, en gardant le sens et le ton. Retourne uniquement le texte reformulé.',
+  shorten: 'Raccourcis ce texte : supprime les redondances et les mots inutiles. Retourne uniquement le texte raccourci.',
+  expand: 'Développe ce texte avec plus de détails et de nuances. Retourne uniquement le texte développé.',
+  formal: 'Réécris ce texte dans un registre formel et professionnel. Retourne uniquement le texte réécrit.',
+  custom: '',
+};
+
+let selMode = 'correct';
+
+document.querySelectorAll('.ai-mode-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.ai-mode-btn').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected'); selMode=btn.dataset.mode;
+    if(selMode==='custom') { aiPrompt.placeholder='Décris ta demande…'; aiPrompt.focus(); }
+    else aiPrompt.placeholder='Précisions optionnelles…';
+  });
+});
+
+function openAI() {
+  aiPanel.classList.add('open');
+  const sel=editor.value.slice(editor.selectionStart,editor.selectionEnd).trim();
+  aiStatus.innerHTML = sel
+    ? `<span style="color:var(--accent)">✓ ${wc(sel)} mots sélectionnés</span>`
+    : `<span style="color:var(--text-faint)">Aucune sélection — tout le document sera traité</span>`;
+}
+
+document.getElementById('btn-ai').addEventListener('click',openAI);
+document.getElementById('btn-close-ai').addEventListener('click',()=>{aiPanel.classList.remove('open');aiStatus.innerHTML='';});
+aiPrompt.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI();}});
+document.getElementById('btn-ai-send').addEventListener('click',sendAI);
+
+async function sendAI() {
+  const apiKey=localStorage.getItem(APIKEY_KEY);
+  if(!apiKey){apiModal.classList.add('open');return;}
+
+  const ss=editor.selectionStart, se=editor.selectionEnd, hasSel=se>ss;
+  const target=hasSel?editor.value.slice(ss,se):editor.value;
+  if(!target.trim()){aiStatus.innerHTML=`<span style="color:var(--danger)">Document vide</span>`;return;}
+
+  const custom=aiPrompt.value.trim();
+  let prompt = selMode==='custom'
+    ? (custom||null)
+    : AI_PROMPTS[selMode]+(custom?'\nPrécision: '+custom:'');
+
+  if(!prompt){aiStatus.innerHTML=`<span style="color:var(--danger)">Décris ta demande</span>`;return;}
+
+  aiStatus.innerHTML=`<div class="spinner"></div><span>En cours…</span>`;
+  const sendBtn=document.getElementById('btn-ai-send');
+  sendBtn.style.opacity='.5'; sendBtn.style.pointerEvents='none';
+
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:2000,
+        messages:[{role:'user',content:`${prompt}\n\n---\n${target}\n---`}]
+      })
+    });
+    if(!res.ok){const e=await res.json();throw new Error(e.error?.message||`Erreur ${res.status}`);}
+    const data=await res.json();
+    const revised=data.content?.[0]?.text?.trim();
+    if(!revised) throw new Error('Réponse vide');
+
+    aiPanel.classList.remove('open'); aiStatus.innerHTML='';
+
+    if(hasSel) {
+      const fullRevised=editor.value.slice(0,ss)+revised+editor.value.slice(se);
+      showDiff(editor.value, fullRevised);
+    } else {
+      showDiff(editor.value, revised);
     }
+
+  } catch(err) {
+    aiStatus.innerHTML=`<span style="color:var(--danger)">⚠ ${err.message}</span>`;
+    if(err.message.includes('401')||err.message.toLowerCase().includes('key'))
+      setTimeout(()=>apiModal.classList.add('open'),400);
   } finally {
-    sendBtn.style.opacity = '';
-    sendBtn.style.pointerEvents = '';
+    sendBtn.style.opacity=''; sendBtn.style.pointerEvents='';
   }
 }
 
-function escapeHtml(text) {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+// ═══ API MODAL ════════════════════════════════
+document.getElementById('btn-modal-save').addEventListener('click',()=>{
+  const key=document.getElementById('api-key-input').value.trim();
+  if(!key){document.getElementById('api-key-input').style.borderColor='var(--danger)';return;}
+  localStorage.setItem(APIKEY_KEY,key); apiModal.classList.remove('open');
+  showToast('Clé API sauvegardée ✓'); sendAI();
+});
+document.getElementById('btn-modal-cancel').addEventListener('click',()=>apiModal.classList.remove('open'));
 
-document.getElementById('btn-insert').addEventListener('click', () => {
-  if (!state.aiOutput) return;
-  const pos = editor.selectionEnd;
-  const before = editor.value.slice(0, pos);
-  const after = editor.value.slice(pos);
-  const sep = before && !before.endsWith('\n') ? '\n\n' : '';
-  editor.value = before + sep + state.aiOutput + '\n' + after;
-  editor.selectionStart = editor.selectionEnd = pos + sep.length + state.aiOutput.length + 1;
-  editor.focus();
-  aiPanel.classList.remove('open');
-  updateWordCount();
-  if (state.previewMode) updatePreview();
-  if (!getCurrentFile()) {
-    const file = createFile('Sans titre');
-    state.currentId = file.id;
-  }
-  saveCurrentFile();
-  showToast('Texte inséré ✓');
+// ═══ SHORTCUTS ═══════════════════════════════
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==='o'){e.preventDefault();openDrawer();}
+  if((e.metaKey||e.ctrlKey)&&e.key==='p'){e.preventDefault();document.getElementById('btn-preview').click();}
+  if((e.metaKey||e.ctrlKey)&&e.shiftKey&&e.key==='F'){e.preventDefault();document.getElementById('btn-focus').click();}
 });
 
-document.getElementById('btn-discard').addEventListener('click', () => {
-  aiOutput.style.display = 'none';
-  aiActions.style.display = 'none';
-  state.aiOutput = '';
-});
-
-// ─── API KEY MODAL ────────────────────────────────────
-document.getElementById('btn-modal-save').addEventListener('click', () => {
-  const key = document.getElementById('api-key-input').value.trim();
-  if (!key) return;
-  localStorage.setItem(API_KEY_KEY, key);
-  apiModal.classList.remove('open');
-  showToast('Clé API sauvegardée ✓');
-  sendAI();
-});
-
-document.getElementById('btn-modal-cancel').addEventListener('click', () => {
-  apiModal.classList.remove('open');
-});
-
-// ─── KEYBOARD SHORTCUTS ───────────────────────────────
-document.addEventListener('keydown', (e) => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'o') { e.preventDefault(); openDrawer(); }
-  if ((e.metaKey || e.ctrlKey) && e.key === 'p') { e.preventDefault(); document.getElementById('btn-preview').click(); }
-  if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'f') { e.preventDefault(); document.getElementById('btn-focus').click(); }
-});
-
-// ─── INIT ─────────────────────────────────────────────
+// ═══ INIT ════════════════════════════════════
 function init() {
-  // Restore theme
-  const savedTheme = localStorage.getItem('writer_theme');
-  if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+  const theme=localStorage.getItem('writer_theme')||'light';
+  document.documentElement.dataset.theme=theme;
+  document.getElementById('theme-color-meta').content=theme==='dark'?'#1a1917':'#f5f2eb';
 
-  // Load files
-  if (state.files.length > 0) {
+  if(state.files.length>0) {
     openFile(state.files[0].id);
   } else {
-    // Create welcome file
-    const welcome = createFile('Bienvenue');
-    welcome.content = `# Bienvenue dans Writer\n\nUn éditeur minimaliste, inspiré de iA Writer.\n\n## Fonctionnalités\n\n- **Markdown** avec prévisualisation côte à côte\n- **Mode focus** pour écrire sans distraction\n- **Sauvegarde locale** automatique\n- **IA intégrée** via Claude (⌘K)\n\n## Raccourcis\n\n| Action | Raccourci |\n|---|---|\n| Sauvegarder | ⌘S |\n| Ouvrir fichiers | ⌘O |\n| Prévisualisation | ⌘P |\n| Mode focus | ⌘⇧F |\n| Assistant IA | ⌘K |\n\nBonne écriture ✦`;
-    saveFiles();
-    openFile(welcome.id);
+    const f=createFile('Bienvenue dans Writer');
+    f.content=`# Bienvenue dans Writer\n\nUn éditeur inspiré de iA Writer, avec IA intégrée.\n\n## Comment utiliser l'IA\n\n1. Sélectionne un texte (ou rien pour tout traiter)\n2. Clique sur **IA** (ou ⌘K)\n3. Choisis un mode : Corriger, Reformuler, Raccourcir…\n4. Les modifications s'affichent en **diff visuel** :\n   - ~~barré rouge~~ = supprimé\n   - vert surligné = ajouté\n5. Accepte ou annule\n\n## Style Check\n\nActive **SC** pour voir les mots inutiles comptés en rouge.\n\n## Raccourcis clavier\n\n- **⌘K** — Ouvrir l'IA\n- **⌘S** — Sauvegarder\n- **⌘P** — Prévisualisation Markdown\n- **⌘O** — Fichiers\n- **⌘⇧F** — Mode focus`;
+    saveDB(); openFile(f.id);
   }
-
-  updateWordCount();
 }
 
-// Service Worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
-}
-
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 init();
 </script>
 </body>
